@@ -39,7 +39,7 @@ const Explore = () => {
             if (error || !data) {
               const { data: fallback } = await supabase
                 .from('partners')
-                .select('*')
+                .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
                 .eq('is_active', true)
                 .limit(20);
               setPartners((fallback as NearbyPartner[]) || []);
@@ -50,17 +50,17 @@ const Explore = () => {
           },
           async () => {
             setLocationError('No pudimos obtener tu ubicación.');
-            const { data } = await supabase
-              .from('partners')
-              .select('*')
-              .eq('is_active', true)
-              .limit(20);
+              const { data } = await supabase
+                .from('partners')
+                .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
+                .eq('is_active', true)
+                .limit(20);
             setPartners((data as NearbyPartner[]) || []);
             setLoading(false);
           }
         );
       } else {
-        const { data } = await supabase.from('partners').select('*').eq('is_active', true).limit(20);
+        const { data } = await supabase.from('partners').select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at').eq('is_active', true).limit(20);
         setPartners((data as NearbyPartner[]) || []);
         setLoading(false);
       }
