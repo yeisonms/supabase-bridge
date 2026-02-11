@@ -34,7 +34,7 @@ const Explore = () => {
             const { data, error } = await supabase.rpc('get_nearby_partners', {
               lat: latitude,
               long: longitude,
-              radius: 50,
+              radius_meters: 50000,
             });
             if (error || !data) {
               const { data: fallback } = await supabase
