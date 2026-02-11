@@ -88,8 +88,11 @@ const PartnerScanner = () => {
       });
 
       if (error) {
-        console.error('Check-in error:', error);
-        setResult({ success: false, message: 'No se pudo registrar el check-in. Intenta nuevamente.' });
+        if (error.code === '23505') {
+          setResult({ success: false, message: 'Este usuario ya hizo check-in hoy' });
+        } else {
+          setResult({ success: false, message: 'No se pudo registrar el check-in. Intenta nuevamente.' });
+        }
       } else {
         setResult({ success: true, message: '¡Check-in registrado exitosamente!' });
         toast.success('Check-in registrado');

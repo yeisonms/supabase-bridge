@@ -21,7 +21,7 @@ const GymDetail = () => {
     if (!id) return;
     const load = async () => {
       const [{ data: p }, { count }, { data: existing }] = await Promise.all([
-        supabase.from('partners').select('*').eq('id', id).single(),
+        supabase.from('partners').select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at').eq('id', id).single(),
         supabase
           .from('checkins')
           .select('*', { count: 'exact', head: true })
@@ -55,7 +55,12 @@ const GymDetail = () => {
       checkin_date: new Date().toISOString().split('T')[0],
     });
     if (error) {
-      toast.error('Error al hacer check-in');
+      if (error.code === '23505') {
+        setCheckedIn(true);
+        toast.error('Ya hiciste check-in hoy');
+      } else {
+        toast.error('No se pudo hacer check-in. Intenta nuevamente.');
+      }
     } else {
       setCheckedIn(true);
       setTodayCount((c) => c + 1);
