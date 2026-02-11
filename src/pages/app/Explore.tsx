@@ -21,7 +21,7 @@ const Explore = () => {
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: 'AIzaSyCZCXIl1zzKmGt-MXTrdyfUxYBUSfUtecw',
   });
 
   useEffect(() => {
