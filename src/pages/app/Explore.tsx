@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, List, Map as MapIcon, Loader2 } from 'lucide-react';
+import { MapPin, List, Map as MapIcon, Loader2, Search, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import type { Partner } from '@/types/database';
@@ -9,7 +10,16 @@ import type { Partner } from '@/types/database';
 type NearbyPartner = Partner & { distance_km?: number; lat?: number; long?: number };
 
 const MAP_CONTAINER: React.CSSProperties = { width: '100%', height: '100%' };
-const DEFAULT_CENTER = { lat: 19.4326, lng: -99.1332 }; // CDMX fallback
+const DEFAULT_CENTER = { lat: 19.4326, lng: -99.1332 };
+
+const PRESET_LOCATIONS = [
+  { label: 'CDMX, México', lat: 19.4326, lng: -99.1332 },
+  { label: 'São Paulo, Brasil', lat: -23.5505, lng: -46.6333 },
+  { label: 'Campinas, Brasil', lat: -22.9099, lng: -47.0626 },
+  { label: 'Buenos Aires, Argentina', lat: -34.6037, lng: -58.3816 },
+  { label: 'Bogotá, Colombia', lat: 4.7110, lng: -74.0721 },
+  { label: 'Lima, Perú', lat: -12.0464, lng: -77.0428 },
+];
 
 const Explore = () => {
   const [partners, setPartners] = useState<NearbyPartner[]>([]);
@@ -18,6 +28,9 @@ const Explore = () => {
   const [locationError, setLocationError] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedPartner, setSelectedPartner] = useState<NearbyPartner | null>(null);
+  const [showTestPanel, setShowTestPanel] = useState(false);
+  const [testLat, setTestLat] = useState('');
+  const [testLng, setTestLng] = useState('');
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
@@ -25,49 +38,62 @@ const Explore = () => {
     googleMapsApiKey: 'AIzaSyCZCXIl1zzKmGt-MXTrdyfUxYBUSfUtecw',
   });
 
-  useEffect(() => {
-    const fetchPartners = async () => {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            const { latitude, longitude } = pos.coords;
-            setUserLocation({ lat: latitude, lng: longitude });
-            const { data, error } = await supabase.rpc('get_nearby_partners', {
-              lat: latitude,
-              long: longitude,
-              radius_meters: 50000,
-            });
-            if (error || !data) {
-              const { data: fallback } = await supabase
-                .from('partners')
-                .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
-                .eq('is_active', true)
-                .limit(20);
-              setPartners((fallback as NearbyPartner[]) || []);
-            } else {
-              setPartners(data as NearbyPartner[]);
-            }
-            setLoading(false);
-          },
-          async () => {
-            setLocationError('No pudimos obtener tu ubicación.');
-              const { data } = await supabase
-                .from('partners')
-                .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
-                .eq('is_active', true)
-                .limit(20);
-            setPartners((data as NearbyPartner[]) || []);
-            setLoading(false);
-          }
-        );
-      } else {
-        const { data } = await supabase.from('partners').select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at').eq('is_active', true).limit(20);
-        setPartners((data as NearbyPartner[]) || []);
-        setLoading(false);
-      }
-    };
-    fetchPartners();
+  const searchNearby = useCallback(async (lat: number, lng: number) => {
+    setLoading(true);
+    setUserLocation({ lat, lng });
+    const { data, error } = await supabase.rpc('get_nearby_partners', {
+      lat,
+      long: lng,
+      radius_meters: 50000,
+    });
+    if (error || !data) {
+      const { data: fallback } = await supabase
+        .from('partners')
+        .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
+        .eq('is_active', true)
+        .limit(20);
+      setPartners((fallback as NearbyPartner[]) || []);
+    } else {
+      setPartners(data as NearbyPartner[]);
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => searchNearby(pos.coords.latitude, pos.coords.longitude),
+        async () => {
+          setLocationError('No pudimos obtener tu ubicación. Usa el panel de prueba para buscar manualmente.');
+          const { data } = await supabase
+            .from('partners')
+            .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
+            .eq('is_active', true)
+            .limit(20);
+          setPartners((data as NearbyPartner[]) || []);
+          setLoading(false);
+        }
+      );
+    } else {
+      searchNearby(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng);
+    }
+  }, [searchNearby]);
+
+  const handlePresetSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const idx = parseInt(e.target.value);
+    if (isNaN(idx)) return;
+    const loc = PRESET_LOCATIONS[idx];
+    setTestLat(loc.lat.toString());
+    setTestLng(loc.lng.toString());
+    searchNearby(loc.lat, loc.lng);
+  };
+
+  const handleManualSearch = () => {
+    const lat = parseFloat(testLat);
+    const lng = parseFloat(testLng);
+    if (isNaN(lat) || isNaN(lng)) return;
+    searchNearby(lat, lng);
+  };
 
   const formatDistance = (km?: number) => {
     if (!km) return null;
@@ -78,23 +104,71 @@ const Explore = () => {
 
   return (
     <div className="px-4 pt-12 pb-4 flex flex-col" style={{ height: 'calc(100vh - 80px)' }}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-black">Explorar</h1>
-        <div className="flex bg-secondary rounded-lg p-1">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setView('list')}
-            className={`p-2 rounded-md transition-colors ${view === 'list' ? 'bg-card shadow-sm' : ''}`}
+            onClick={() => setShowTestPanel(!showTestPanel)}
+            className={`p-2 rounded-md transition-colors ${showTestPanel ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
+            title="Panel de prueba"
           >
-            <List className="h-4 w-4" />
+            <FlaskConical className="h-4 w-4" />
           </button>
-          <button
-            onClick={() => setView('map')}
-            className={`p-2 rounded-md transition-colors ${view === 'map' ? 'bg-card shadow-sm' : ''}`}
-          >
-            <MapIcon className="h-4 w-4" />
-          </button>
+          <div className="flex bg-secondary rounded-lg p-1">
+            <button
+              onClick={() => setView('list')}
+              className={`p-2 rounded-md transition-colors ${view === 'list' ? 'bg-card shadow-sm' : ''}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setView('map')}
+              className={`p-2 rounded-md transition-colors ${view === 'map' ? 'bg-card shadow-sm' : ''}`}
+            >
+              <MapIcon className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
+
+      {showTestPanel && (
+        <div className="bg-secondary/50 border border-border rounded-lg p-3 mb-3 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+            <FlaskConical className="h-3 w-3" /> Modo de prueba — Cambiar ubicación
+          </p>
+          <select
+            onChange={handlePresetSelect}
+            defaultValue=""
+            className="w-full text-sm rounded-md border border-input bg-background px-2 py-1.5"
+          >
+            <option value="" disabled>Seleccionar ciudad...</option>
+            {PRESET_LOCATIONS.map((loc, i) => (
+              <option key={i} value={i}>{loc.label}</option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              step="any"
+              placeholder="Latitud"
+              value={testLat}
+              onChange={(e) => setTestLat(e.target.value)}
+              className="text-sm h-8"
+            />
+            <Input
+              type="number"
+              step="any"
+              placeholder="Longitud"
+              value={testLng}
+              onChange={(e) => setTestLng(e.target.value)}
+              className="text-sm h-8"
+            />
+            <Button size="sm" className="h-8 px-3 shrink-0" onClick={handleManualSearch}>
+              <Search className="h-3 w-3 mr-1" /> Buscar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {locationError && (
         <p className="text-sm text-muted-foreground bg-secondary rounded-lg p-3 mb-4">{locationError}</p>
