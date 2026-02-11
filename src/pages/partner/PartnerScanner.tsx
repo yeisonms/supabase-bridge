@@ -6,6 +6,12 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+const QRSchema = z.object({
+  user_id: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
 
 const PartnerScanner = () => {
   const { user } = useAuth();
@@ -17,10 +23,10 @@ const PartnerScanner = () => {
     setProcessing(true);
     setResult(null);
     try {
-      // Parse QR data
-      let parsed: { user_id: string; date: string };
+      // Parse and validate QR data
+      let parsed: z.infer<typeof QRSchema>;
       try {
-        parsed = JSON.parse(input);
+        parsed = QRSchema.parse(JSON.parse(input));
       } catch {
         setResult({ success: false, message: 'Código QR inválido' });
         setProcessing(false);
@@ -82,7 +88,8 @@ const PartnerScanner = () => {
       });
 
       if (error) {
-        setResult({ success: false, message: 'Error al registrar: ' + error.message });
+        console.error('Check-in error:', error);
+        setResult({ success: false, message: 'No se pudo registrar el check-in. Intenta nuevamente.' });
       } else {
         setResult({ success: true, message: '¡Check-in registrado exitosamente!' });
         toast.success('Check-in registrado');
