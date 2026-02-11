@@ -39,26 +39,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        console.log('[Auth] onAuthStateChange:', _event, !!session);
         if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          const prof = await fetchProfile(session.user.id);
-          if (mounted) setProfile(prof);
+          // Defer async work to avoid deadlock in onAuthStateChange
+          setTimeout(async () => {
+            const prof = await fetchProfile(session.user.id);
+            console.log('[Auth] profile fetched:', prof);
+            if (mounted) {
+              setProfile(prof);
+              setLoading(false);
+            }
+          }, 0);
         } else {
           setProfile(null);
+          setLoading(false);
         }
-        if (mounted) setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[Auth] getSession:', !!session);
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         const prof = await fetchProfile(session.user.id);
+        console.log('[Auth] initial profile:', prof);
         if (mounted) setProfile(prof);
       }
       if (mounted) setLoading(false);
