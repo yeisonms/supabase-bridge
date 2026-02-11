@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .select('role, first_name, last_name')
             .eq('id', session.user.id)
             .single();
-          setProfile(data);
+          setProfile(data ?? { role: 'user', first_name: null, last_name: null });
         } else {
           setProfile(null);
         }
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         supabase.from('profiles').select('role, first_name, last_name')
           .eq('id', session.user.id).single()
-          .then(({ data }) => setProfile(data));
+          .then(({ data }) => setProfile(data ?? { role: 'user', first_name: null, last_name: null }));
       }
       setLoading(false);
     });
