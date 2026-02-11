@@ -23,12 +23,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('role, first_name, last_name')
-      .eq('id', userId)
-      .single();
-    return data ?? { role: 'user', first_name: null, last_name: null };
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('role, first_name, last_name')
+        .eq('id', userId)
+        .maybeSingle();
+      return data ?? { role: 'user', first_name: null, last_name: null };
+    } catch {
+      return { role: 'user', first_name: null, last_name: null };
+    }
   };
 
   useEffect(() => {
