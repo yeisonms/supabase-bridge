@@ -21,6 +21,7 @@ const Explore = () => {
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
     googleMapsApiKey: 'AIzaSyCZCXIl1zzKmGt-MXTrdyfUxYBUSfUtecw',
   });
 
