@@ -37,6 +37,7 @@ export type Partner = {
   min_plan_level: number | null;
   daily_capacity_limit: number | null;
   image_url: string | null;
+  photos: string[] | null;
   is_active: boolean | null;
   admin_user_id: string | null;
   created_at: string;
