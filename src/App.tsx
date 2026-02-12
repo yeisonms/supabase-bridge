@@ -17,6 +17,7 @@ import Profile from "./pages/app/Profile";
 import PartnerLayout from "./pages/partner/PartnerLayout";
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
 import PartnerScanner from "./pages/partner/PartnerScanner";
+import PartnerRegister from "./pages/partner/PartnerRegister";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             </Route>
 
             {/* Partner portal */}
+            <Route path="/partner/register" element={<PartnerRegister />} />
             <Route path="/partner" element={<PartnerLayout />}>
               <Route index element={<PartnerDashboard />} />
               <Route path="scanner" element={<PartnerScanner />} />

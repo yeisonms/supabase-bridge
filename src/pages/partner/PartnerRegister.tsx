@@ -1,0 +1,220 @@
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Building2, MapPin } from 'lucide-react';
+
+const CATEGORIES = ['Gym', 'Crossfit', 'Yoga', 'Pilates', 'Boxing', 'MMA', 'Funcional', 'Otro'];
+
+const PartnerRegister = () => {
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { toast } = useToast();
+
+  const [gymName, setGymName] = useState('');
+  const [address, setAddress] = useState('');
+  const [category, setCategory] = useState('');
+  const [price, setPrice] = useState('');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!user) {
+      toast({ title: 'Error', description: 'Debes iniciar sesión primero.', variant: 'destructive' });
+      navigate('/register?role=partner');
+      return;
+    }
+
+    if (!gymName.trim() || !address.trim() || !category || !lat || !lng) {
+      toast({ title: 'Campos requeridos', description: 'Completa todos los campos obligatorios.', variant: 'destructive' });
+      return;
+    }
+
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+    const parsedPrice = parseFloat(price) || 0;
+
+    if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
+      toast({ title: 'Latitud inválida', description: 'Debe ser un número entre -90 y 90.', variant: 'destructive' });
+      return;
+    }
+    if (isNaN(parsedLng) || parsedLng < -180 || parsedLng > 180) {
+      toast({ title: 'Longitud inválida', description: 'Debe ser un número entre -180 y 180.', variant: 'destructive' });
+      return;
+    }
+
+    setSubmitting(true);
+
+    const { error } = await supabase.rpc('register_new_partner', {
+      gym_name: gymName.trim(),
+      gym_address: address.trim(),
+      gym_category: category,
+      gym_lat: parsedLat,
+      gym_long: parsedLng,
+      gym_price: parsedPrice,
+    });
+
+    setSubmitting(false);
+
+    if (error) {
+      console.error('[PartnerRegister] RPC error:', error.message);
+      toast({
+        title: 'Error al registrar',
+        description: 'No se pudo registrar el gimnasio. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({ title: '¡Gimnasio Registrado!', description: 'Tu gimnasio ya forma parte de RedFit.' });
+    // Force reload to refresh profile role from server
+    setTimeout(() => {
+      navigate('/partner', { replace: true });
+      window.location.reload();
+    }, 500);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary">
+        <p className="text-muted-foreground">Cargando…</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-secondary gap-4">
+        <p className="text-lg font-medium">Debes crear una cuenta primero</p>
+        <Link to="/register?role=partner">
+          <Button>Crear Cuenta</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-secondary">
+      <Link to="/" className="text-3xl font-black mb-6">
+        <span className="text-gradient">Red</span>Fit
+      </Link>
+
+      <div className="w-full max-w-md bg-card rounded-2xl shadow-card p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Building2 className="h-5 w-5 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold">Registrar mi Gimnasio</h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="gymName">Nombre del Gimnasio *</Label>
+            <Input
+              id="gymName"
+              value={gymName}
+              onChange={(e) => setGymName(e.target.value)}
+              placeholder="Ej: PowerFit Centro"
+              maxLength={100}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Dirección *</Label>
+            <Input
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Ej: Av. Reforma 123, CDMX"
+              maxLength={200}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Categoría *</Label>
+            <Select value={category} onValueChange={setCategory} required>
+              <SelectTrigger id="category">
+                <SelectValue placeholder="Selecciona una categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="price">Precio Mensual Aproximado (MXN)</Label>
+            <Input
+              id="price"
+              type="number"
+              min="0"
+              step="1"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="Ej: 500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <Label>Ubicación *</Label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="lat" className="text-xs text-muted-foreground">Latitud</Label>
+                <Input
+                  id="lat"
+                  type="number"
+                  step="any"
+                  min="-90"
+                  max="90"
+                  value={lat}
+                  onChange={(e) => setLat(e.target.value)}
+                  placeholder="19.4326"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="lng" className="text-xs text-muted-foreground">Longitud</Label>
+                <Input
+                  id="lng"
+                  type="number"
+                  step="any"
+                  min="-180"
+                  max="180"
+                  value={lng}
+                  onChange={(e) => setLng(e.target.value)}
+                  placeholder="-99.1332"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full mt-2"
+            disabled={submitting}
+          >
+            {submitting ? 'Registrando…' : 'Registrar Gimnasio'}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default PartnerRegister;
