@@ -22,7 +22,7 @@ const GymDetail = () => {
     if (!id) return;
     const load = async () => {
       const [{ data: p }, { count }, { data: existing }] = await Promise.all([
-        supabase.from('partners').select('id, name, description, address, category, location, image_url, photos, is_active, daily_capacity_limit, min_plan_level, created_at').eq('id', id).single(),
+        supabase.from('partners').select('*').eq('id', id).single(),
         supabase
           .from('checkins')
           .select('*', { count: 'exact', head: true })
