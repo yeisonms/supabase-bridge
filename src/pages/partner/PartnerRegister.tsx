@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, MapPin } from 'lucide-react';
+import { Building2, MapPin, ImagePlus, X } from 'lucide-react';
 
 const CATEGORIES = ['Gym', 'Crossfit', 'Yoga', 'Pilates', 'Boxing', 'MMA', 'Funcional', 'Otro'];
 
@@ -23,6 +23,48 @@ const PartnerRegister = () => {
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_PHOTOS = 5;
+
+  const handleAddPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const allowed = files
+      .filter((f) => f.type.startsWith('image/'))
+      .slice(0, MAX_PHOTOS - photos.length);
+
+    if (allowed.length === 0) return;
+
+    setPhotos((prev) => [...prev, ...allowed]);
+    allowed.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreviews((prev) => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadPhotos = async (partnerId: string): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of photos) {
+      const ext = file.name.split('.').pop();
+      const path = `${partnerId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('gym-photos').upload(path, file, { upsert: false });
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('gym-photos').getPublicUrl(path);
+        urls.push(urlData.publicUrl);
+      }
+    }
+    return urls;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +117,28 @@ const PartnerRegister = () => {
     }
 
     toast({ title: '¡Gimnasio Registrado!', description: 'Tu gimnasio ya forma parte de RedFit.' });
+
+    // Upload photos in background — best effort
+    if (photos.length > 0 && user) {
+      try {
+        // Get the partner id from partners table
+        const { data: partner } = await supabase
+          .from('partners')
+          .select('id')
+          .eq('admin_user_id', user.id)
+          .single();
+
+        if (partner) {
+          const urls = await uploadPhotos(partner.id);
+          if (urls.length > 0) {
+            await supabase.from('partners').update({ photos: urls }).eq('id', partner.id);
+          }
+        }
+      } catch (uploadErr) {
+        console.warn('[PartnerRegister] Photo upload failed:', uploadErr);
+      }
+    }
+
     // Force reload to refresh profile role from server
     setTimeout(() => {
       navigate('/partner', { replace: true });
@@ -202,6 +266,43 @@ const PartnerRegister = () => {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Fotos del gimnasio */}
+          <div className="space-y-2">
+            <Label>Fotos del Gimnasio (máx. {MAX_PHOTOS})</Label>
+            <div className="flex flex-wrap gap-3">
+              {photoPreviews.map((src, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
+                  <img src={src} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  <ImagePlus className="h-5 w-5" />
+                  <span className="text-[10px]">Añadir</span>
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleAddPhotos}
+            />
           </div>
 
           <Button
