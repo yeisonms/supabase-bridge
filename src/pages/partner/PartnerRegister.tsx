@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, MapPin, ImagePlus, X } from 'lucide-react';
@@ -18,6 +19,7 @@ const PartnerRegister = () => {
 
   const [gymName, setGymName] = useState('');
   const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
   const [lat, setLat] = useState('');
@@ -119,7 +121,7 @@ const PartnerRegister = () => {
     toast({ title: '¡Gimnasio Registrado!', description: 'Tu gimnasio ya forma parte de RedFit.' });
 
     // Upload photos in background — best effort
-    if (photos.length > 0 && user) {
+    if ((photos.length > 0 || description.trim()) && user) {
       try {
         // Get the partner id from partners table
         const { data: partner } = await supabase
@@ -130,8 +132,11 @@ const PartnerRegister = () => {
 
         if (partner) {
           const urls = await uploadPhotos(partner.id);
-          if (urls.length > 0) {
-            await supabase.from('partners').update({ photos: urls }).eq('id', partner.id);
+          if (urls.length > 0 || description.trim()) {
+            const updateData: Record<string, unknown> = {};
+            if (urls.length > 0) updateData.photos = urls;
+            if (description.trim()) updateData.description = description.trim();
+            await supabase.from('partners').update(updateData).eq('id', partner.id);
           }
         }
       } catch (uploadErr) {
@@ -201,6 +206,18 @@ const PartnerRegister = () => {
               placeholder="Ej: Av. Reforma 123, CDMX"
               maxLength={200}
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Descripción del Centro Deportivo</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe las actividades, servicios y lo que hace especial a tu gimnasio..."
+              maxLength={500}
+              rows={3}
             />
           </div>
 
