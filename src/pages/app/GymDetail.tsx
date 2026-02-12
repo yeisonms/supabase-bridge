@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell, Mail, Phone } from 'lucide-react';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -174,6 +174,24 @@ const GymDetail = () => {
               <p className="text-sm text-foreground/80 leading-relaxed">
                 {partner.description}
               </p>
+            </div>
+          )}
+
+          {/* Contact info */}
+          {((partner as any).email || (partner as any).phone) && (
+            <div className="mt-4 space-y-2">
+              {(partner as any).email && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  {(partner as any).email}
+                </p>
+              )}
+              {(partner as any).phone && (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Phone className="h-4 w-4 shrink-0" />
+                  {(partner as any).phone}
+                </p>
+              )}
             </div>
           )}
 
