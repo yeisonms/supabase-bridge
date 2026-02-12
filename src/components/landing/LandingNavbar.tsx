@@ -15,9 +15,9 @@ const LandingNavbar = () => {
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Cómo Funciona
-          </Link>
+          </button>
           <Link to="/partner-info" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Soy Gimnasio
           </Link>
@@ -35,9 +35,9 @@ const LandingNavbar = () => {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t bg-background px-4 pb-4 animate-fade-in">
-          <Link to="/#features" onClick={() => setOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
+          <button onClick={() => { setOpen(false); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="block py-3 text-sm font-medium text-muted-foreground">
             Cómo Funciona
-          </Link>
+          </button>
           <Link to="/partner-info" onClick={() => setOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
             Soy Gimnasio
           </Link>
