@@ -99,7 +99,7 @@ const PartnerRegister = () => {
 
     setSubmitting(true);
 
-    const { error } = await supabase.rpc('register_new_partner', {
+    const { data: rpcResult, error } = await supabase.rpc('register_new_partner', {
       gym_name: gymName.trim(),
       gym_address: address.trim(),
       gym_category: category,
@@ -120,28 +120,20 @@ const PartnerRegister = () => {
       return;
     }
 
+    const newPartnerId = rpcResult?.partner_id;
     toast({ title: '¡Gimnasio Registrado!', description: 'Tu gimnasio ya forma parte de RedFit.' });
 
     // Upload photos in background — best effort
-    if ((photos.length > 0 || description.trim()) && user) {
+    if (newPartnerId && (photos.length > 0 || description.trim() || email.trim() || phone.trim())) {
       try {
-        // Get the partner id from partners table
-        const { data: partner } = await supabase
-          .from('partners')
-          .select('id')
-          .eq('admin_user_id', user.id)
-          .single();
-
-        if (partner) {
-          const urls = await uploadPhotos(partner.id);
-          if (urls.length > 0 || description.trim() || email.trim() || phone.trim()) {
-            const updateData: Record<string, unknown> = {};
-            if (urls.length > 0) updateData.photos = urls;
-            if (description.trim()) updateData.description = description.trim();
-            if (email.trim()) updateData.email = email.trim();
-            if (phone.trim()) updateData.phone = phone.trim();
-            await supabase.from('partners').update(updateData).eq('id', partner.id);
-          }
+        const urls = await uploadPhotos(newPartnerId);
+        const updateData: Record<string, unknown> = {};
+        if (urls.length > 0) updateData.photos = urls;
+        if (description.trim()) updateData.description = description.trim();
+        if (email.trim()) updateData.email = email.trim();
+        if (phone.trim()) updateData.phone = phone.trim();
+        if (Object.keys(updateData).length > 0) {
+          await supabase.from('partners').update(updateData).eq('id', newPartnerId);
         }
       } catch (uploadErr) {
         console.warn('[PartnerRegister] Photo upload failed:', uploadErr);
