@@ -18,6 +18,8 @@ const PartnerRegister = () => {
   const { toast } = useToast();
 
   const [gymName, setGymName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -77,7 +79,7 @@ const PartnerRegister = () => {
       return;
     }
 
-    if (!gymName.trim() || !address.trim() || !category || !lat || !lng) {
+    if (!gymName.trim() || !address.trim() || !category || !lat || !lng || !email.trim() || !phone.trim()) {
       toast({ title: 'Campos requeridos', description: 'Completa todos los campos obligatorios.', variant: 'destructive' });
       return;
     }
@@ -132,10 +134,12 @@ const PartnerRegister = () => {
 
         if (partner) {
           const urls = await uploadPhotos(partner.id);
-          if (urls.length > 0 || description.trim()) {
+          if (urls.length > 0 || description.trim() || email.trim() || phone.trim()) {
             const updateData: Record<string, unknown> = {};
             if (urls.length > 0) updateData.photos = urls;
             if (description.trim()) updateData.description = description.trim();
+            if (email.trim()) updateData.email = email.trim();
+            if (phone.trim()) updateData.phone = phone.trim();
             await supabase.from('partners').update(updateData).eq('id', partner.id);
           }
         }
@@ -193,6 +197,32 @@ const PartnerRegister = () => {
               onChange={(e) => setGymName(e.target.value)}
               placeholder="Ej: PowerFit Centro"
               maxLength={100}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo Electrónico *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contacto@tugimnasio.com"
+              maxLength={100}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Número de Teléfono *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Ej: +52 55 1234 5678"
+              maxLength={20}
               required
             />
           </div>
