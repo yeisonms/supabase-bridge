@@ -30,11 +30,14 @@ const HeroSection = () => {
               Comenzar Ahora
             </Button>
           </Link>
-          <Link to="/#features">
-            <Button variant="hero-outline" size="lg" className="w-full sm:w-auto px-10 py-6 text-lg rounded-full">
-              Cómo Funciona
-            </Button>
-          </Link>
+          <Button
+            variant="hero-outline"
+            size="lg"
+            className="w-full sm:w-auto px-10 py-6 text-lg rounded-full"
+            onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            Cómo Funciona
+          </Button>
         </div>
       </div>
     </section>
