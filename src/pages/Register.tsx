@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,17 +7,34 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPartner = searchParams.get('role') === 'partner';
   const { user, profile, loading } = useAuth();
+  const roleUpdated = useRef(false);
 
+  // After signup, if registering as partner, update profile role
   useEffect(() => {
-    if (!loading && user && profile) {
+    if (!loading && user && profile && !roleUpdated.current) {
+      if (isPartner && profile.role !== 'partner_admin') {
+        roleUpdated.current = true;
+        supabase
+          .from('profiles')
+          .update({ role: 'partner_admin' })
+          .eq('id', user.id)
+          .then(() => {
+            navigate('/partner', { replace: true });
+            // Force reload to refresh profile
+            window.location.reload();
+          });
+        return;
+      }
       if (profile.role === 'partner_admin') {
         navigate('/partner', { replace: true });
       } else {
         navigate('/app', { replace: true });
       }
     }
-  }, [user, profile, loading, navigate]);
+  }, [user, profile, loading, navigate, isPartner]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-secondary">
@@ -25,7 +42,9 @@ const Register = () => {
         <span className="text-gradient">Red</span>Fit
       </Link>
       <div className="w-full max-w-sm bg-card rounded-2xl shadow-card p-6">
-        <h1 className="text-2xl font-bold text-center mb-6">Crear Cuenta</h1>
+        <h1 className="text-2xl font-bold text-center mb-6">
+          {isPartner ? 'Registrar mi Gimnasio' : 'Crear Cuenta'}
+        </h1>
         <Auth
           supabaseClient={supabase}
           appearance={{

@@ -34,7 +34,7 @@ const PartnerInfo = () => (
           ))}
         </div>
 
-        <Link to="/register">
+        <Link to="/register?role=partner">
           <Button variant="hero" size="lg" className="rounded-full px-10 py-6 text-lg">
             Registrar mi Gimnasio
           </Button>
