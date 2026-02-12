@@ -16,16 +16,9 @@ const Register = () => {
   useEffect(() => {
     if (!loading && user && profile && !roleUpdated.current) {
       if (isPartner && profile.role !== 'partner_admin') {
+        // Redirect to partner registration form instead of updating role client-side
         roleUpdated.current = true;
-        supabase
-          .from('profiles')
-          .update({ role: 'partner_admin' })
-          .eq('id', user.id)
-          .then(() => {
-            navigate('/partner', { replace: true });
-            // Force reload to refresh profile
-            window.location.reload();
-          });
+        navigate('/partner/register', { replace: true });
         return;
       }
       if (profile.role === 'partner_admin') {
