@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PartnerInfo from "./pages/PartnerInfo";
+import Plans from "./pages/Plans";
 import AppLayout from "./pages/app/AppLayout";
 import AppHome from "./pages/app/AppHome";
 import Explore from "./pages/app/Explore";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/plans" element={<Plans />} />
             <Route path="/partner-info" element={<PartnerInfo />} />
 
             {/* User portal */}

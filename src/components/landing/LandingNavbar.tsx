@@ -18,6 +18,9 @@ const LandingNavbar = () => {
           <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Cómo Funciona
           </button>
+          <Link to="/plans" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Planes
+          </Link>
           <Link to="/partner-info" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Sé un Aliado RedFit
           </Link>
@@ -38,6 +41,9 @@ const LandingNavbar = () => {
           <button onClick={() => { setOpen(false); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="block py-3 text-sm font-medium text-muted-foreground">
             Cómo Funciona
           </button>
+          <Link to="/plans" onClick={() => setOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
+            Planes
+          </Link>
           <Link to="/partner-info" onClick={() => setOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
             Sé un Aliado RedFit
           </Link>
