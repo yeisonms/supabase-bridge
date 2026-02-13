@@ -1,6 +1,7 @@
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
+import PricingSection from '@/components/landing/PricingSection';
 import Footer from '@/components/landing/Footer';
 
 const Index = () => {
@@ -10,6 +11,7 @@ const Index = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
+        <PricingSection />
       </main>
       <Footer />
     </div>
