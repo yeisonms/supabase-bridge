@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const Pass = () => {
   const { user } = useAuth();
   const today = new Date().toISOString().split('T')[0];
-  const qrData = JSON.stringify({ user_id: user?.id, date: today });
+  const qrData = JSON.stringify({ id: user?.id, type: "access_pass" });
 
   return (
     <div className="px-4 pt-12 pb-4 flex flex-col items-center">
