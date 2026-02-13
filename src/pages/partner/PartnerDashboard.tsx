@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Loader2, AlertTriangle, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, DollarSign, TrendingUp, Clock, CheckCircle, CalendarClock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const RATE_PER_VISIT = 5000; // Tarifa por visita en COP (ajustar según acuerdo)
+const RATE_PER_VISIT = 5000;
 
 type CheckinRow = {
   id: string;
@@ -26,10 +26,12 @@ type ProfileInfo = {
 const PartnerDashboard = () => {
   const { user } = useAuth();
   const [partner, setPartner] = useState<any>(null);
-  const [todayCount, setTodayCount] = useState(0);
+  const [todayConfirmed, setTodayConfirmed] = useState(0);
+  const [todayReserved, setTodayReserved] = useState(0);
+  const [todayTotal, setTodayTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState<{ day: string; visitas: number }[]>([]);
-  const [monthTotal, setMonthTotal] = useState(0);
+  const [monthConfirmedTotal, setMonthConfirmedTotal] = useState(0);
   const [todayCheckins, setTodayCheckins] = useState<(CheckinRow & { profile?: ProfileInfo })[]>([]);
 
   useEffect(() => {
@@ -41,31 +43,27 @@ const PartnerDashboard = () => {
         .eq('admin_user_id', user.id)
         .single();
 
-      if (!p) {
-        setLoading(false);
-        return;
-      }
-
+      if (!p) { setLoading(false); return; }
       setPartner(p);
 
       const today = new Date().toISOString().split('T')[0];
       const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
       const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
-      // Parallel queries
-      const [countRes, monthRes, todayRes] = await Promise.all([
+      const [todayAllRes, monthConfirmedRes, todayListRes] = await Promise.all([
         supabase
           .from('checkins')
-          .select('*', { count: 'exact', head: true })
+          .select('status')
           .eq('partner_id', p.id)
-          .eq('checkin_date', today),
+          .eq('checkin_date', today)
+          .in('status', ['confirmed', 'reserved']),
         supabase
           .from('checkins')
           .select('checkin_date')
           .eq('partner_id', p.id)
           .gte('checkin_date', monthStart)
           .lte('checkin_date', monthEnd)
-          .in('status', ['confirmed', 'reserved']),
+          .eq('status', 'confirmed'),
         supabase
           .from('checkins')
           .select('id, user_id, checkin_date, created_at, status')
@@ -75,40 +73,42 @@ const PartnerDashboard = () => {
           .limit(20),
       ]);
 
-      setTodayCount(countRes.count || 0);
+      const todayRows = todayAllRes.data || [];
+      const confirmed = todayRows.filter((r: any) => r.status === 'confirmed').length;
+      const reserved = todayRows.filter((r: any) => r.status === 'reserved').length;
+      setTodayConfirmed(confirmed);
+      setTodayReserved(reserved);
+      setTodayTotal(confirmed + reserved);
 
-      // Build monthly chart data
+      // Monthly chart — only confirmed
+      const confirmedRows = monthConfirmedRes.data || [];
       const days = eachDayOfInterval({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) });
       const countsMap: Record<string, number> = {};
-      (monthRes.data || []).forEach((row: any) => {
+      confirmedRows.forEach((row: any) => {
         countsMap[row.checkin_date] = (countsMap[row.checkin_date] || 0) + 1;
       });
-      const chartData = days.map((d) => {
+      setMonthlyData(days.map((d) => {
         const key = format(d, 'yyyy-MM-dd');
         return { day: format(d, 'd', { locale: es }), visitas: countsMap[key] || 0 };
-      });
-      setMonthlyData(chartData);
-      setMonthTotal((monthRes.data || []).length);
+      }));
+      setMonthConfirmedTotal(confirmedRows.length);
 
-      // Load profiles for today's checkins
-      const checkins = (todayRes.data || []) as CheckinRow[];
+      // Profiles for today's checkins
+      const checkins = (todayListRes.data || []) as CheckinRow[];
       if (checkins.length > 0) {
         const userIds = [...new Set(checkins.map((c) => c.user_id))];
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, first_name, last_name')
           .in('id', userIds);
-
         const profileMap: Record<string, ProfileInfo> = {};
         (profiles || []).forEach((pr: any) => {
           profileMap[pr.id] = { first_name: pr.first_name, last_name: pr.last_name };
         });
-
         setTodayCheckins(checkins.map((c) => ({ ...c, profile: profileMap[c.user_id] })));
       } else {
         setTodayCheckins([]);
       }
-
       setLoading(false);
     };
     load();
@@ -133,10 +133,10 @@ const PartnerDashboard = () => {
   }
 
   const capacityPercent = partner.daily_capacity_limit
-    ? Math.min((todayCount / partner.daily_capacity_limit) * 100, 100)
+    ? Math.min((todayTotal / partner.daily_capacity_limit) * 100, 100)
     : 0;
 
-  const estimatedRevenue = monthTotal * RATE_PER_VISIT;
+  const estimatedRevenue = monthConfirmedTotal * RATE_PER_VISIT;
 
   return (
     <div className="px-4 pt-8 pb-12 max-w-2xl mx-auto">
@@ -149,20 +149,21 @@ const PartnerDashboard = () => {
       <h1 className="text-2xl font-black mb-1">{partner.name}</h1>
       <p className="text-muted-foreground text-sm mb-8">Panel de control</p>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        {/* Visit counter */}
-        <div className="bg-card rounded-2xl p-5 shadow-card border">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        {/* Tarjeta A: Aforo Actual */}
+        <div className="bg-card rounded-2xl p-5 shadow-card border col-span-2">
           <div className="flex items-center gap-2 mb-3">
             <Users className="h-4 w-4 text-primary" />
-            <h2 className="font-bold text-sm">Visitas Hoy</h2>
+            <h2 className="font-bold text-sm">Aforo Actual</h2>
           </div>
           <div className="text-3xl font-black">
-            {todayCount}
+            {todayTotal}
             <span className="text-sm text-muted-foreground font-normal">
               {partner.daily_capacity_limit ? ` / ${partner.daily_capacity_limit}` : ''}
             </span>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">Reservados + Confirmados</p>
           {partner.daily_capacity_limit && (
             <div className="w-full bg-secondary rounded-full h-2 mt-3 overflow-hidden">
               <div
@@ -173,51 +174,53 @@ const PartnerDashboard = () => {
           )}
         </div>
 
-        {/* Estimated revenue */}
+        {/* Tarjeta B: Check-ins Confirmados */}
         <div className="bg-card rounded-2xl p-5 shadow-card border">
           <div className="flex items-center gap-2 mb-3">
-            <DollarSign className="h-4 w-4 text-primary" />
-            <h2 className="font-bold text-sm">Ingresos Estimados</h2>
+            <CheckCircle className="h-4 w-4 text-emerald-600" />
+            <h2 className="font-bold text-sm">Confirmados</h2>
           </div>
-          <div className="text-3xl font-black">
-            {estimatedRevenue.toLocaleString('es-CO')}
+          <div className="text-3xl font-black text-emerald-600">{todayConfirmed}</div>
+          <p className="text-xs text-muted-foreground mt-1">Ingresos reales de hoy</p>
+        </div>
+
+        {/* Tarjeta C: Reservas Pendientes */}
+        <div className="bg-card rounded-2xl p-5 shadow-card border">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarClock className="h-4 w-4 text-amber-500" />
+            <h2 className="font-bold text-sm">Pendientes</h2>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {monthTotal} visitas × ${RATE_PER_VISIT.toLocaleString('es-CO')}
-          </p>
+          <div className="text-3xl font-black text-amber-500">{todayReserved}</div>
+          <p className="text-xs text-muted-foreground mt-1">Faltan por llegar</p>
         </div>
       </div>
 
-      {/* Monthly chart */}
+      {/* Revenue */}
+      <div className="bg-card rounded-2xl p-5 shadow-card border mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign className="h-4 w-4 text-primary" />
+          <h2 className="font-bold text-sm">Ingresos Estimados (este mes)</h2>
+        </div>
+        <div className="text-3xl font-black">${estimatedRevenue.toLocaleString('es-CO')}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {monthConfirmedTotal} check-ins confirmados × ${RATE_PER_VISIT.toLocaleString('es-CO')}
+        </p>
+      </div>
+
+      {/* Monthly chart — only confirmed */}
       <div className="bg-card rounded-2xl p-5 shadow-card border mb-6">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-4 w-4 text-primary" />
-          <h2 className="font-bold text-sm">Visitas de este mes</h2>
+          <h2 className="font-bold text-sm">Check-ins confirmados este mes</h2>
         </div>
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-                allowDecimals={false}
-              />
+              <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '0.75rem',
-                  fontSize: 12,
-                }}
+                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.75rem', fontSize: 12 }}
                 labelFormatter={(label) => `Día ${label}`}
               />
               <Bar dataKey="visitas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -247,11 +250,12 @@ const PartnerDashboard = () => {
               <tbody>
                 {todayCheckins.map((c) => {
                   const name = c.profile
-                    ? `${c.profile.first_name || ''} ${c.profile.last_name || ''}`.trim() || 'Sin nombre'
-                    : 'Usuario';
+                    ? `${c.profile.first_name || ''} ${c.profile.last_name || ''}`.trim() || 'Usuario Sin Nombre'
+                    : 'Usuario Sin Nombre';
                   const time = c.created_at ? format(parseISO(c.created_at), 'HH:mm', { locale: es }) : '--:--';
-                  const statusLabel = c.status === 'confirmed' ? 'Confirmado' : c.status === 'reserved' ? 'Reservado' : c.status;
-                  const statusColor = c.status === 'confirmed' ? 'text-emerald-600' : 'text-primary';
+                  const isConfirmed = c.status === 'confirmed';
+                  const statusLabel = isConfirmed ? 'Confirmado' : c.status === 'reserved' ? 'Reservado' : c.status;
+                  const statusColor = isConfirmed ? 'text-emerald-600' : 'text-red-500';
                   return (
                     <tr key={c.id} className="border-b last:border-0">
                       <td className="py-3 font-medium">{name}</td>
