@@ -19,6 +19,12 @@ import PartnerLayout from "./pages/partner/PartnerLayout";
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
 import PartnerScanner from "./pages/partner/PartnerScanner";
 import PartnerRegister from "./pages/partner/PartnerRegister";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminPartners from "./pages/admin/AdminPartners";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPlans from "./pages/admin/AdminPlans";
+import AdminReports from "./pages/admin/AdminReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +57,15 @@ const App = () => (
             <Route path="/partner" element={<PartnerLayout />}>
               <Route index element={<PartnerDashboard />} />
               <Route path="scanner" element={<PartnerScanner />} />
+            </Route>
+
+            {/* Super Admin portal */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="partners" element={<AdminPartners />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="plans" element={<AdminPlans />} />
+              <Route path="reports" element={<AdminReports />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
