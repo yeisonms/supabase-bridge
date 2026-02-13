@@ -19,7 +19,7 @@ const LandingNavbar = () => {
             Cómo Funciona
           </button>
           <Link to="/partner-info" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Soy Gimnasio
+            Soy Partner
           </Link>
           <Link to="/login">
             <Button size="sm">Iniciar Sesión</Button>
@@ -39,7 +39,7 @@ const LandingNavbar = () => {
             Cómo Funciona
           </button>
           <Link to="/partner-info" onClick={() => setOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
-            Soy Gimnasio
+            Soy Partner
           </Link>
           <Link to="/login" onClick={() => setOpen(false)}>
             <Button className="w-full mt-2">Iniciar Sesión</Button>
