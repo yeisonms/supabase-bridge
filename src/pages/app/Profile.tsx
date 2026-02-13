@@ -11,21 +11,36 @@ const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const { data: subscription, isLoading } = useQuery({
-    queryKey: ['user-subscription', user?.id],
+  // Read subscription from profiles table (where checkout writes)
+  const { data: profileSub, isLoading } = useQuery({
+    queryKey: ['profile-subscription', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*, plans(*)')
-        .eq('user_id', user!.id)
-        .eq('status', 'active')
-        .maybeSingle();
+        .from('profiles')
+        .select('current_plan_id, subscription_status, plan_start_date, plan_end_date')
+        .eq('id', user!.id)
+        .single();
       if (error) throw error;
       return data;
     },
   });
 
+  const { data: plan } = useQuery({
+    queryKey: ['plan-detail', profileSub?.current_plan_id],
+    enabled: !!profileSub?.current_plan_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('id', profileSub!.current_plan_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isActive = profileSub?.subscription_status === 'active';
   const phone = user?.user_metadata?.phone || null;
 
   const handleSignOut = async () => {
@@ -80,11 +95,11 @@ const Profile = () => {
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-36" />
           </div>
-        ) : subscription ? (
+        ) : isActive && plan ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span className="text-xl font-bold text-foreground">
-                {(subscription as any).plans?.name || 'Plan'}
+                {plan.name}
               </span>
               <Badge className="bg-green-500/15 text-green-600 border-green-500/30 hover:bg-green-500/20">
                 Activo
@@ -93,7 +108,7 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">
               Válido hasta:{' '}
               <span className="font-medium text-foreground">
-                {new Date(subscription.current_period_end).toLocaleDateString('es-CO', {
+                {new Date(profileSub.plan_end_date).toLocaleDateString('es-CO', {
                   day: 'numeric',
                   month: 'long',
                   year: 'numeric',
