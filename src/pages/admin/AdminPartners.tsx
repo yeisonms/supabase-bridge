@@ -34,8 +34,9 @@ const AdminPartners = () => {
       .update({ is_active: newStatus })
       .eq('id', partner.id)
       .select()
-      .single();
-    if (error || !updated) { toast.error('Error al actualizar: ' + (error?.message || 'sin cambios')); return; }
+      .maybeSingle();
+    if (error) { toast.error('Error al actualizar: ' + error.message); return; }
+    if (!updated) { toast.error('No se pudo actualizar. Verifica permisos.'); return; }
     toast.success(newStatus ? 'Partner activado' : 'Partner desactivado');
     setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, is_active: updated.is_active } : p));
   };
