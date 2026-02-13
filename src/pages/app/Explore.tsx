@@ -19,6 +19,7 @@ const PRESET_LOCATIONS = [
   { label: 'Buenos Aires, Argentina', lat: -34.6037, lng: -58.3816 },
   { label: 'Bogotá, Colombia', lat: 4.7110, lng: -74.0721 },
   { label: 'Lima, Perú', lat: -12.0464, lng: -77.0428 },
+  { label: 'Popayán, Colombia', lat: 2.4541667, lng: -76.6091667 },
 ];
 
 const Explore = () => {
