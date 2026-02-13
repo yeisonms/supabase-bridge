@@ -1,10 +1,21 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const LandingNavbar = () => {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const scrollToFeatures = () => {
+    setOpen(false);
+    if (location.pathname === '/') {
+      document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/?scrollTo=features');
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
@@ -15,7 +26,7 @@ const LandingNavbar = () => {
 
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-6">
-          <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={scrollToFeatures} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Cómo Funciona
           </button>
           <Link to="/plans" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -38,7 +49,7 @@ const LandingNavbar = () => {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t bg-background px-4 pb-4 animate-fade-in">
-          <button onClick={() => { setOpen(false); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="block py-3 text-sm font-medium text-muted-foreground">
+          <button onClick={scrollToFeatures} className="block py-3 text-sm font-medium text-muted-foreground">
             Cómo Funciona
           </button>
           <Link to="/plans" onClick={() => setOpen(false)} className="block py-3 text-sm font-medium text-muted-foreground">
