@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell, Mail, Phone } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell, Mail, Phone, Lock, ArrowUpCircle } from 'lucide-react';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -17,6 +19,36 @@ const GymDetail = () => {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState(0);
+
+  // Fetch user subscription
+  const { data: userSub } = useQuery({
+    queryKey: ['user-sub-gym', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('current_plan_id, subscription_status')
+        .eq('id', user!.id)
+        .single();
+      return data;
+    },
+  });
+
+  const { data: userPlan } = useQuery({
+    queryKey: ['user-plan-gym', userSub?.current_plan_id],
+    enabled: !!userSub?.current_plan_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('plans')
+        .select('access_level')
+        .eq('id', userSub!.current_plan_id)
+        .single();
+      return data;
+    },
+  });
+
+  const isActive = userSub?.subscription_status === 'active';
+  const userAccessLevel = isActive ? (userPlan?.access_level ?? 0) : 0;
 
   useEffect(() => {
     if (!id) return;
@@ -50,25 +82,43 @@ const GymDetail = () => {
     ? todayCount >= partner.daily_capacity_limit
     : false;
 
+  const minPlanLevel = partner?.min_plan_level ?? 1;
+  const canAccess = isActive && userAccessLevel >= minPlanLevel;
+  const needsUpgrade = isActive && userAccessLevel < minPlanLevel;
+
   const handleCheckin = async () => {
     if (!user || !id) return;
+
+    // Validate subscription
+    if (!isActive) {
+      toast.error('Necesitas un plan activo para entrenar');
+      navigate('/plans');
+      return;
+    }
+
+    if (needsUpgrade) {
+      toast.info('Necesitas un plan superior para este gimnasio');
+      navigate('/plans');
+      return;
+    }
+
     setCheckingIn(true);
-    const { error } = await supabase.from('checkins').insert({
-      user_id: user.id,
-      partner_id: id,
-      checkin_date: new Date().toISOString().split('T')[0],
+    // Call RPC process_checkin
+    const { data, error } = await supabase.rpc('process_checkin', {
+      p_partner_id: id,
     });
+
     if (error) {
-      if (error.code === '23505') {
-        setCheckedIn(true);
-        toast.error('Ya hiciste check-in hoy');
-      } else {
-        toast.error('No se pudo hacer check-in. Intenta nuevamente.');
-      }
+      toast.error(error.message || 'No se pudo hacer check-in. Intenta nuevamente.');
     } else {
-      setCheckedIn(true);
-      setTodayCount((c) => c + 1);
-      toast.success('¡Check-in exitoso!');
+      const result = data as any;
+      if (result?.success === false) {
+        toast.error(result?.message || 'No se pudo hacer check-in.');
+      } else {
+        setCheckedIn(true);
+        setTodayCount((c) => c + 1);
+        toast.success(result?.message || '¡Check-in exitoso!');
+      }
     }
     setCheckingIn(false);
   };
@@ -95,6 +145,70 @@ const GymDetail = () => {
     );
   }
 
+  const renderCheckinButton = () => {
+    if (checkedIn) {
+      return (
+        <Button disabled className="w-full rounded-full py-6" size="lg">
+          <CheckCircle className="h-5 w-5 mr-2" />
+          Ya hiciste check-in hoy
+        </Button>
+      );
+    }
+
+    if (!isActive) {
+      return (
+        <Button
+          variant="secondary"
+          size="lg"
+          className="w-full rounded-full py-6"
+          onClick={() => {
+            toast.error('Necesitas un plan activo para entrenar');
+            navigate('/plans');
+          }}
+        >
+          <Lock className="h-5 w-5 mr-2" />
+          Adquirir Plan
+        </Button>
+      );
+    }
+
+    if (needsUpgrade) {
+      return (
+        <Button
+          variant="secondary"
+          size="lg"
+          className="w-full rounded-full py-6"
+          onClick={() => navigate('/plans')}
+        >
+          <ArrowUpCircle className="h-5 w-5 mr-2" />
+          Mejorar Plan
+        </Button>
+      );
+    }
+
+    if (isFull) {
+      return (
+        <Button disabled variant="secondary" className="w-full rounded-full py-6" size="lg">
+          <XCircle className="h-5 w-5 mr-2" />
+          Cupo agotado
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="hero"
+        size="lg"
+        className="w-full rounded-full py-6"
+        onClick={handleCheckin}
+        disabled={checkingIn}
+      >
+        {checkingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+        Hacer Check-in
+      </Button>
+    );
+  };
+
   return (
     <div className="pb-24">
       {/* Photo gallery */}
@@ -120,7 +234,6 @@ const GymDetail = () => {
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
-                {/* Dots */}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                   {photos.map((_, i) => (
                     <button
@@ -159,6 +272,16 @@ const GymDetail = () => {
                 </span>
               )}
             </div>
+            {needsUpgrade && (
+              <Badge variant="secondary" className="text-xs shrink-0">
+                Plan Superior
+              </Badge>
+            )}
+            {!isActive && (
+              <Badge variant="outline" className="text-xs shrink-0 flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Sin Plan
+              </Badge>
+            )}
           </div>
 
           {partner.address && (
@@ -226,28 +349,7 @@ const GymDetail = () => {
 
           {/* Check-in button */}
           <div className="mt-6">
-            {checkedIn ? (
-              <Button disabled className="w-full rounded-full py-6" size="lg">
-                <CheckCircle className="h-5 w-5 mr-2" />
-                Ya hiciste check-in hoy
-              </Button>
-            ) : isFull ? (
-              <Button disabled variant="secondary" className="w-full rounded-full py-6" size="lg">
-                <XCircle className="h-5 w-5 mr-2" />
-                Cupo agotado
-              </Button>
-            ) : (
-              <Button
-                variant="hero"
-                size="lg"
-                className="w-full rounded-full py-6"
-                onClick={handleCheckin}
-                disabled={checkingIn}
-              >
-                {checkingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-                Hacer Check-in
-              </Button>
-            )}
+            {renderCheckinButton()}
           </div>
         </div>
       </div>

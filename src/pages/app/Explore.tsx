@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { MapPin, List, Map as MapIcon, Loader2, Search, FlaskConical } from 'lucide-react';
+import { MapPin, List, Map as MapIcon, Loader2, Search, FlaskConical, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import type { Partner } from '@/types/database';
 
 type NearbyPartner = Partner & { distance_km?: number; lat?: number; long?: number };
@@ -33,6 +36,37 @@ const Explore = () => {
   const [testLat, setTestLat] = useState('');
   const [testLng, setTestLng] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Fetch user subscription info
+  const { data: userSub } = useQuery({
+    queryKey: ['user-sub-explore', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('current_plan_id, subscription_status')
+        .eq('id', user!.id)
+        .single();
+      return data;
+    },
+  });
+
+  const { data: userPlan } = useQuery({
+    queryKey: ['user-plan-explore', userSub?.current_plan_id],
+    enabled: !!userSub?.current_plan_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('plans')
+        .select('access_level')
+        .eq('id', userSub!.current_plan_id)
+        .single();
+      return data;
+    },
+  });
+
+  const isActive = userSub?.subscription_status === 'active';
+  const userAccessLevel = isActive ? (userPlan?.access_level ?? 0) : 0;
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -99,6 +133,12 @@ const Explore = () => {
   const formatDistance = (km?: number) => {
     if (!km) return null;
     return km < 1 ? `A ${Math.round(km * 1000)}m` : `A ${km.toFixed(1)}km`;
+  };
+
+  const getGymAccessStatus = (gym: NearbyPartner) => {
+    if (!isActive) return 'no-plan';
+    const minLevel = gym.min_plan_level ?? 1;
+    return userAccessLevel >= minLevel ? 'accessible' : 'upgrade';
   };
 
   const mapCenter = userLocation || DEFAULT_CENTER;
@@ -187,29 +227,42 @@ const Explore = () => {
         </div>
       ) : view === 'list' ? (
         <div className="space-y-3 overflow-y-auto flex-1">
-          {partners.map((p) => (
-            <Link to={`/app/gym/${p.id}`} key={p.id} className="block">
-              <div className="bg-card rounded-xl p-4 shadow-card border flex gap-4 hover:shadow-elevated transition-shadow">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
-                ) : (
-                  <div className="w-20 h-20 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                    <MapPin className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <h3 className="font-bold truncate">{p.name}</h3>
-                  {p.category && <span className="text-xs text-muted-foreground">{p.category}</span>}
-                  {p.address && <p className="text-sm text-muted-foreground mt-1 truncate">{p.address}</p>}
-                  {p.distance_km != null && (
-                    <span className="inline-block mt-2 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                      {formatDistance(p.distance_km)}
-                    </span>
+          {partners.map((p) => {
+            const status = getGymAccessStatus(p);
+            return (
+              <Link to={`/app/gym/${p.id}`} key={p.id} className="block">
+                <div className={`bg-card rounded-xl p-4 shadow-card border flex gap-4 hover:shadow-elevated transition-shadow relative ${status === 'upgrade' ? 'opacity-60' : ''}`}>
+                  {status === 'no-plan' && (
+                    <div className="absolute top-3 right-3">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   )}
+                  {status === 'upgrade' && (
+                    <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">
+                      Plan Superior
+                    </Badge>
+                  )}
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      <MapPin className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <h3 className="font-bold truncate">{p.name}</h3>
+                    {p.category && <span className="text-xs text-muted-foreground">{p.category}</span>}
+                    {p.address && <p className="text-sm text-muted-foreground mt-1 truncate">{p.address}</p>}
+                    {p.distance_km != null && (
+                      <span className="inline-block mt-2 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        {formatDistance(p.distance_km)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden flex-1">
@@ -257,6 +310,14 @@ const Explore = () => {
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {formatDistance(selectedPartner.distance_km)}
                         </p>
+                      )}
+                      {getGymAccessStatus(selectedPartner) === 'no-plan' && (
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Lock className="h-3 w-3" /> Requiere plan
+                        </p>
+                      )}
+                      {getGymAccessStatus(selectedPartner) === 'upgrade' && (
+                        <p className="text-xs text-amber-600 mt-1">Plan Superior requerido</p>
                       )}
                       <button
                         onClick={() => navigate(`/app/gym/${selectedPartner.id}`)}
