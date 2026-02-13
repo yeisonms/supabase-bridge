@@ -25,6 +25,8 @@ import AdminPartners from "./pages/admin/AdminPartners";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminReports from "./pages/admin/AdminReports";
+import Checkout from "./pages/Checkout";
+import Welcome from "./pages/app/Welcome";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/partner-info" element={<PartnerInfo />} />
+            <Route path="/checkout" element={<Checkout />} />
 
             {/* User portal */}
             <Route path="/app" element={<AppLayout />}>
@@ -50,6 +53,7 @@ const App = () => (
               <Route path="gym/:id" element={<GymDetail />} />
               <Route path="pass" element={<Pass />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="welcome" element={<Welcome />} />
             </Route>
 
             {/* Partner portal */}
