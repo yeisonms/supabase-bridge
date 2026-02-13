@@ -10,15 +10,15 @@ import type { Plan } from '@/types/database';
 
 const AdminPlans = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [editing, setEditing] = useState<Record<number, { price: string; description: string }>>({});
+  const [editing, setEditing] = useState<Record<number, { name: string; price: string; description: string }>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchPlans = async () => {
     const { data } = await supabase.from('plans').select('*').order('access_level');
     if (data) {
       setPlans(data);
-      const editState: Record<number, { price: string; description: string }> = {};
-      data.forEach((p) => { editState[p.id] = { price: String(p.price), description: p.description ?? '' }; });
+      const editState: Record<number, { name: string; price: string; description: string }> = {};
+      data.forEach((p) => { editState[p.id] = { name: p.name, price: String(p.price), description: p.description ?? '' }; });
       setEditing(editState);
     }
     setLoading(false);
@@ -30,11 +30,13 @@ const AdminPlans = () => {
     const edit = editing[plan.id];
     if (!edit) return;
     const price = parseFloat(edit.price);
+    const name = edit.name.trim();
+    if (!name) { toast.error('El nombre no puede estar vacío'); return; }
     if (isNaN(price) || price < 0) { toast.error('Precio inválido'); return; }
 
     const { error } = await supabase
       .from('plans')
-      .update({ price, description: edit.description })
+      .update({ name, price, description: edit.description })
       .eq('id', plan.id);
 
     if (error) { toast.error('Error al guardar'); return; }
@@ -64,11 +66,17 @@ const AdminPlans = () => {
           <Card key={plan.id}>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between">
-                {plan.name}
-                <span className="text-xs text-muted-foreground">Nivel {plan.access_level}</span>
+                <span>Nivel {plan.access_level}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input
+                  value={editing[plan.id]?.name ?? ''}
+                  onChange={(e) => setEditing((prev) => ({ ...prev, [plan.id]: { ...prev[plan.id], name: e.target.value } }))}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Precio (COP)</Label>
                 <Input
