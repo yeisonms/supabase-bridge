@@ -12,7 +12,9 @@ const Login = () => {
 
   useEffect(() => {
     if (!loading && user && profile) {
-      if (profile.role === 'partner_admin') {
+      if (profile.role === 'super_admin') {
+        navigate('/admin', { replace: true });
+      } else if (profile.role === 'partner_admin') {
         navigate('/partner', { replace: true });
       } else {
         navigate('/app', { replace: true });
