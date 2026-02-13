@@ -24,13 +24,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('role, first_name, last_name')
         .eq('id', userId)
         .maybeSingle();
+      if (error) {
+        console.error('[Auth] fetchProfile error:', error.message, error.code);
+        return { role: 'user', first_name: null, last_name: null };
+      }
+      console.log('[Auth] fetchProfile data:', data);
       return data ?? { role: 'user', first_name: null, last_name: null };
-    } catch {
+    } catch (e) {
+      console.error('[Auth] fetchProfile exception:', e);
       return { role: 'user', first_name: null, last_name: null };
     }
   };
