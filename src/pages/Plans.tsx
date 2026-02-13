@@ -1,4 +1,4 @@
-import { Check, Smartphone, Globe, QrCode, Dumbbell, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Check, Smartphone, Globe, QrCode, Dumbbell, MessageCircle, ShieldCheck, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,45 +6,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import LandingNavbar from '@/components/landing/LandingNavbar';
 import Footer from '@/components/landing/Footer';
 import appMockup from '@/assets/app-mockup.png';
-
-const plans = [
-  {
-    name: 'Basic',
-    price: '$59.900',
-    tagline: 'Para empezar.',
-    featured: false,
-    benefits: [
-      'Acceso a gimnasios básicos',
-      'Zona de cardio y pesas',
-      '1 acceso por día',
-      'Sin cláusula de permanencia',
-    ],
-  },
-  {
-    name: 'Move',
-    price: '$89.900',
-    tagline: 'Variedad total.',
-    featured: true,
-    benefits: [
-      'Todo lo del Plan Basic +',
-      'Clases Grupales (Yoga, Baile, Pilates)',
-      'Gimnasios nivel Pro',
-      'Acceso a Dojos de Artes Marciales',
-    ],
-  },
-  {
-    name: 'Pro',
-    price: '$129.900',
-    tagline: 'Sin límites.',
-    featured: false,
-    benefits: [
-      'Todo lo del Plan Move +',
-      'Crossfit, Boxeo Avanzado',
-      'Acceso a Dojos y Artes Marciales',
-      'Acceso ilimitado a centros Premium',
-    ],
-  },
-];
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import type { Plan } from '@/types/database';
 
 const guarantees = [
   { icon: ShieldCheck, text: 'Sin cláusulas de permanencia' },
@@ -68,6 +32,21 @@ const faqs = [
 ];
 
 const Plans = () => {
+  const { data: plans, isLoading } = useQuery({
+    queryKey: ['plans'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('plans')
+        .select('*')
+        .order('price', { ascending: true });
+      if (error) throw error;
+      return data as Plan[];
+    },
+  });
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(price);
+
   return (
     <div className="min-h-screen bg-background">
       <LandingNavbar />
@@ -85,43 +64,49 @@ const Plans = () => {
 
       {/* Pricing Cards */}
       <section className="pb-20 px-4">
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-2xl p-8 flex flex-col transition-shadow ${
-                plan.featured
-                  ? 'border-2 border-primary shadow-lg scale-[1.03] bg-card'
-                  : 'border border-border shadow-sm bg-card'
-              }`}
-            >
-              {plan.featured && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 text-xs font-bold">
-                  🔥 Más Popular
-                </Badge>
-              )}
-              <h3 className="text-2xl font-bold text-foreground mb-1">Plan {plan.name}</h3>
-              <p className="text-muted-foreground text-sm mb-5">{plan.tagline}</p>
-              <div className="mb-6">
-                <span className="text-4xl font-black text-foreground">{plan.price}</span>
-                <span className="text-muted-foreground text-sm"> / mes</span>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+            {plans?.map((plan) => (
+              <div
+                key={plan.id}
+                className={`relative rounded-2xl p-8 flex flex-col transition-shadow ${
+                  plan.is_featured
+                    ? 'border-2 border-primary shadow-lg scale-[1.03] bg-card'
+                    : 'border border-border shadow-sm bg-card'
+                }`}
+              >
+                {plan.is_featured && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 text-xs font-bold">
+                    🔥 Más Popular
+                  </Badge>
+                )}
+                <h3 className="text-2xl font-bold text-foreground mb-1">Plan {plan.name}</h3>
+                <p className="text-muted-foreground text-sm mb-5">{plan.description}</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-foreground">{formatPrice(plan.price)}</span>
+                  <span className="text-muted-foreground text-sm"> / mes</span>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1">
+                  {plan.features?.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-foreground">
+                      <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to={`/checkout?planId=${plan.id}`}>
+                  <Button className="w-full text-base" variant={plan.is_featured ? 'default' : 'outline'} size="lg">
+                    Elegir {plan.name}
+                  </Button>
+                </Link>
               </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                {plan.benefits.map((b) => (
-                  <li key={b} className="flex items-start gap-2 text-sm text-foreground">
-                    <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link to={`/register?plan=${plan.name.toLowerCase()}`}>
-                <Button className="w-full text-base" variant={plan.featured ? 'default' : 'outline'} size="lg">
-                  Elegir {plan.name}
-                </Button>
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         <p className="text-center text-muted-foreground text-xs mt-8">
           Puedes cancelar o cambiar tu plan en cualquier momento desde tu perfil.
         </p>
