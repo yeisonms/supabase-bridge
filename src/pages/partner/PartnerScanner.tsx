@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
@@ -12,6 +12,7 @@ type ScanResult = { success: boolean; message: string; userName?: string } | nul
 
 const PartnerScanner = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'camera' | 'manual'>('camera');
   const [input, setInput] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -89,6 +90,13 @@ const PartnerScanner = () => {
           ? 'bg-emerald-600'
           : 'bg-destructive'
       }`}>
+        <button
+          onClick={() => navigate('/partner')}
+          className="absolute top-6 left-6 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+          aria-label="Volver al dashboard"
+        >
+          <ArrowLeft className="h-6 w-6 text-white" />
+        </button>
         <div className="text-center text-white">
           {result.success ? (
             <CheckCircle className="h-24 w-24 mx-auto mb-6" />
@@ -107,14 +115,23 @@ const PartnerScanner = () => {
               Pídele al usuario que reserve su cupo desde la app antes de ingresar.
             </p>
           )}
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            size="lg"
-            className="rounded-full px-8 py-6 text-lg bg-white/20 border-white/40 text-white hover:bg-white/30 hover:text-white"
-          >
-            Escanear otro
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              size="lg"
+              className="rounded-full px-8 py-6 text-lg bg-white/20 border-white/40 text-white hover:bg-white/30 hover:text-white"
+            >
+              Escanear otro
+            </Button>
+            <Button
+              onClick={() => navigate('/partner')}
+              size="lg"
+              className="rounded-full px-8 py-6 text-lg bg-white hover:bg-white/90 text-emerald-600 hover:text-emerald-600 font-semibold"
+            >
+              <Home className="h-5 w-5 mr-2" /> Dashboard
+            </Button>
+          </div>
         </div>
       </div>
     );
