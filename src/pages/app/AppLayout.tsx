@@ -10,7 +10,7 @@ const navItems = [
 ];
 
 const AppLayout = () => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -21,6 +21,8 @@ const AppLayout = () => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (profile?.role === 'super_admin') return <Navigate to="/admin" replace />;
+  if (profile?.role === 'partner_admin') return <Navigate to="/partner" replace />;
 
   return (
     <div className="min-h-screen pb-20 bg-background">
