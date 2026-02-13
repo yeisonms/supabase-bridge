@@ -58,6 +58,12 @@ const PartnerDashboard = () => {
 
   return (
     <div className="px-4 pt-8 max-w-lg mx-auto">
+      {partner.is_active === false && (
+        <div className="flex items-center gap-3 bg-yellow-500/15 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 rounded-xl px-4 py-3 mb-6">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-medium">Tu cuenta está en revisión. Tu gimnasio no será visible para los usuarios hasta que sea aprobado.</p>
+        </div>
+      )}
       <h1 className="text-2xl font-black mb-1">{partner.name}</h1>
       <p className="text-muted-foreground text-sm mb-8">Panel de control</p>
 

@@ -121,7 +121,7 @@ const PartnerRegister = () => {
     }
 
     const newPartnerId = rpcResult?.partner_id;
-    toast({ title: '¡Gimnasio Registrado!', description: 'Tu gimnasio ya forma parte de RedFit.' });
+    toast({ title: 'Solicitud enviada con éxito', description: 'Un administrador revisará tu perfil en breve.' });
 
     // Upload photos in background — best effort
     if (newPartnerId && (photos.length > 0 || description.trim() || email.trim() || phone.trim())) {
