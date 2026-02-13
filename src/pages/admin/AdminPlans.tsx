@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 import type { Plan } from '@/types/database';
 
 const AdminPlans = () => {
+  const queryClient = useQueryClient();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [editing, setEditing] = useState<Record<number, { name: string; price: string; description: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -39,8 +41,9 @@ const AdminPlans = () => {
       .update({ name, price, description: edit.description })
       .eq('id', plan.id);
 
-    if (error) { toast.error('Error al guardar'); return; }
-    toast.success(`Plan "${plan.name}" actualizado`);
+    if (error) { toast.error('Error al guardar: ' + error.message); return; }
+    toast.success(`Plan "${name}" actualizado`);
+    queryClient.invalidateQueries({ queryKey: ['plans'] });
     fetchPlans();
   };
 
