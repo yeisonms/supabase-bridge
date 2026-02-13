@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell, Mail, Phone, Lock, ArrowUpCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell, Mail, Phone, Lock, ArrowUpCircle, Ticket } from 'lucide-react';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -86,10 +86,9 @@ const GymDetail = () => {
   const canAccess = isActive && userAccessLevel >= minPlanLevel;
   const needsUpgrade = isActive && userAccessLevel < minPlanLevel;
 
-  const handleCheckin = async () => {
+  const handleReserve = async () => {
     if (!user || !id) return;
 
-    // Validate subscription
     if (!isActive) {
       toast.error('Necesitas un plan activo para entrenar');
       navigate('/plans');
@@ -103,21 +102,20 @@ const GymDetail = () => {
     }
 
     setCheckingIn(true);
-    // Call RPC process_checkin
-    const { data, error } = await supabase.rpc('process_checkin', {
+    const { data, error } = await supabase.rpc('reserve_spot', {
       p_partner_id: id,
     });
 
     if (error) {
-      toast.error(error.message || 'No se pudo hacer check-in. Intenta nuevamente.');
+      toast.error(error.message || 'No se pudo reservar. Intenta nuevamente.');
     } else {
       const result = data as any;
       if (result?.success === false) {
-        toast.error(result?.message || 'No se pudo hacer check-in.');
+        toast.error(result?.message || 'No se pudo reservar.');
       } else {
         setCheckedIn(true);
         setTodayCount((c) => c + 1);
-        toast.success(result?.message || '¡Check-in exitoso!');
+        toast.success(result?.message || '¡Reserva exitosa!');
       }
     }
     setCheckingIn(false);
@@ -148,10 +146,21 @@ const GymDetail = () => {
   const renderCheckinButton = () => {
     if (checkedIn) {
       return (
-        <Button disabled className="w-full rounded-full py-6" size="lg">
-          <CheckCircle className="h-5 w-5 mr-2" />
-          Ya hiciste check-in hoy
-        </Button>
+        <div className="space-y-3">
+          <Button disabled className="w-full rounded-full py-6 bg-emerald-600/90 text-primary-foreground" size="lg">
+            <CheckCircle className="h-5 w-5 mr-2" />
+            Reservado ✅
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full rounded-full py-6"
+            onClick={() => navigate('/app/pass')}
+          >
+            <Ticket className="h-5 w-5 mr-2" />
+            Ver Mi Pase (QR)
+          </Button>
+        </div>
       );
     }
 
@@ -200,11 +209,11 @@ const GymDetail = () => {
         variant="hero"
         size="lg"
         className="w-full rounded-full py-6"
-        onClick={handleCheckin}
+        onClick={handleReserve}
         disabled={checkingIn}
       >
         {checkingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-        Hacer Check-in
+        Reservar Cupo
       </Button>
     );
   };
