@@ -28,10 +28,16 @@ const AdminPartners = () => {
   useEffect(() => { fetchPartners(); }, []);
 
   const toggleActive = async (partner: Partner) => {
-    const { error } = await supabase.from('partners').update({ is_active: !partner.is_active }).eq('id', partner.id);
-    if (error) { toast.error('Error al actualizar'); return; }
-    toast.success(partner.is_active ? 'Partner desactivado' : 'Partner activado');
-    fetchPartners();
+    const newStatus = !partner.is_active;
+    const { data: updated, error } = await supabase
+      .from('partners')
+      .update({ is_active: newStatus })
+      .eq('id', partner.id)
+      .select()
+      .single();
+    if (error || !updated) { toast.error('Error al actualizar: ' + (error?.message || 'sin cambios')); return; }
+    toast.success(newStatus ? 'Partner activado' : 'Partner desactivado');
+    setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, is_active: updated.is_active } : p));
   };
 
   return (
