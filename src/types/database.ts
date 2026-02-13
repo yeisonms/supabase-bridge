@@ -14,6 +14,8 @@ export type Plan = {
   access_level: number;
   monthly_credits: number;
   description: string | null;
+  features: string[] | null;
+  is_featured: boolean | null;
   created_at: string;
 };
 
