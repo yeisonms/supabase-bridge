@@ -14,7 +14,7 @@ type PartnerData = {
   address: string | null;
   description: string | null;
   phone: string | null;
-  website: string | null;
+  email: string | null;
   opening_hours: string | null;
   photos: string[] | null;
 };
@@ -34,18 +34,19 @@ const PartnerSettings = () => {
   const [description, setDescription] = useState('');
   const [openingHours, setOpeningHours] = useState('');
   const [phone, setPhone] = useState('');
-  const [website, setWebsite] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       const { data, error } = await supabase
         .from('partners')
-        .select('id, name, address, description, phone, website, opening_hours, photos')
+        .select('id, name, address, description, phone, email, opening_hours, photos')
         .eq('admin_user_id', user.id)
         .single();
 
       if (error || !data) {
+        console.error('[PartnerSettings] load error:', error);
         setLoading(false);
         return;
       }
@@ -53,7 +54,7 @@ const PartnerSettings = () => {
       setDescription(data.description || '');
       setOpeningHours((data as any).opening_hours || '');
       setPhone((data as any).phone || '');
-      setWebsite((data as any).website || '');
+      setEmail((data as any).email || '');
       setLoading(false);
     };
     load();
@@ -64,7 +65,7 @@ const PartnerSettings = () => {
     setSaving(true);
     const { error } = await supabase
       .from('partners')
-      .update({ description, opening_hours: openingHours, phone, website } as any)
+      .update({ description, opening_hours: openingHours, phone, email } as any)
       .eq('id', partner.id);
 
     setSaving(false);
@@ -286,11 +287,12 @@ const PartnerSettings = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1 block">Sitio Web</label>
+            <label className="text-sm font-medium text-muted-foreground mb-1 block">Email de contacto</label>
             <Input
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              placeholder="https://migym.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contacto@migym.com"
+              type="email"
             />
           </div>
         </div>
