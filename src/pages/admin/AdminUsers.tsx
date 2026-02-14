@@ -22,27 +22,27 @@ const AdminUsers = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const { data: profiles } = await supabase.from('profiles').select('id, first_name, last_name, role, created_at');
+      const { data: profiles } = await supabase.from('profiles').select('id, first_name, last_name, role, created_at, current_plan_id, subscription_status');
       if (!profiles) { setLoading(false); return; }
 
-      const { data: subs } = await supabase.from('subscriptions').select('user_id, status, plan_id');
       const { data: plans } = await supabase.from('plans').select('id, name');
       const { data: checkins } = await supabase.from('checkins').select('user_id, checkin_date').order('checkin_date', { ascending: false });
 
       const planMap: Record<number, string> = {};
       plans?.forEach((p) => { planMap[p.id] = p.name; });
 
-      const subMap: Record<string, { status: string; plan_name: string }> = {};
-      subs?.forEach((s) => { subMap[s.user_id] = { status: s.status, plan_name: planMap[s.plan_id] || '—' }; });
-
       const lastCheckinMap: Record<string, string> = {};
       checkins?.forEach((c) => { if (!lastCheckinMap[c.user_id]) lastCheckinMap[c.user_id] = c.checkin_date; });
 
       setUsers(
-        profiles.map((p) => ({
-          ...p,
-          plan_name: subMap[p.id]?.plan_name ?? 'Sin plan',
-          sub_status: subMap[p.id]?.status ?? null,
+        profiles.map((p: any) => ({
+          id: p.id,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          role: p.role,
+          created_at: p.created_at,
+          plan_name: p.current_plan_id ? (planMap[p.current_plan_id] || '—') : 'Sin plan',
+          sub_status: p.subscription_status ?? null,
           last_checkin: lastCheckinMap[p.id] ?? null,
         }))
       );
