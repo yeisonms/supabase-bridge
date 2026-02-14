@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, ChevronLeft, ChevronRight, Dumbbell, Mail, Phone, Lock, ArrowUpCircle, Ticket } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle, Dumbbell, Mail, Phone, Lock, ArrowUpCircle, Ticket } from 'lucide-react';
+import PhotoGallery from '@/components/gym/PhotoGallery';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 
@@ -18,7 +19,7 @@ const GymDetail = () => {
   const [todayCount, setTodayCount] = useState(0);
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [currentPhoto, setCurrentPhoto] = useState(0);
+  
 
   // Fetch user subscription
   const { data: userSub } = useQuery({
@@ -121,8 +122,6 @@ const GymDetail = () => {
     setCheckingIn(false);
   };
 
-  const nextPhoto = () => setCurrentPhoto((c) => (c + 1) % photos.length);
-  const prevPhoto = () => setCurrentPhoto((c) => (c - 1 + photos.length) % photos.length);
 
   if (loading) {
     return (
@@ -221,49 +220,17 @@ const GymDetail = () => {
   return (
     <div className="pb-24">
       {/* Photo gallery */}
-      <div className="relative h-64 sm:h-72">
+      <div className="relative">
         {hasPhotos ? (
-          <>
-            <img
-              src={photos[currentPhoto]}
-              alt={`${partner.name} - Foto ${currentPhoto + 1}`}
-              className="w-full h-full object-cover transition-opacity duration-300"
-            />
-            {photos.length > 1 && (
-              <>
-                <button
-                  onClick={prevPhoto}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-card/70 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-card/90 transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={nextPhoto}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-card/70 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-card/90 transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  {photos.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPhoto(i)}
-                      className={`w-2 h-2 rounded-full transition-all ${i === currentPhoto ? 'bg-white scale-110' : 'bg-white/50'}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </>
+          <PhotoGallery photos={photos} name={partner.name} />
         ) : (
-          <div className="w-full h-full bg-secondary flex items-center justify-center">
+          <div className="w-full h-72 bg-secondary flex items-center justify-center">
             <Dumbbell className="h-16 w-16 text-muted-foreground/30" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 w-10 h-10 bg-card/80 backdrop-blur rounded-full flex items-center justify-center"
+          className="absolute top-4 left-4 z-20 w-10 h-10 bg-card/80 backdrop-blur rounded-full flex items-center justify-center"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -327,20 +294,6 @@ const GymDetail = () => {
             </div>
           )}
 
-          {/* Photo thumbnails */}
-          {photos.length > 1 && (
-            <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
-              {photos.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPhoto(i)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${i === currentPhoto ? 'border-primary ring-1 ring-primary/30' : 'border-transparent opacity-70 hover:opacity-100'}`}
-                >
-                  <img src={src} alt={`Miniatura ${i + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Capacity */}
           <div className="flex items-center gap-2 mt-5 text-sm">
