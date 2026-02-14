@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import PhotoGallery from '@/components/gym/PhotoGallery';
 import FavoriteButton from '@/components/FavoriteButton';
+import ReviewSection from '@/components/gym/ReviewSection';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -406,6 +407,15 @@ const GymDetail = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="px-4 mt-4">
+        <ReviewSection
+          partnerId={partner.id}
+          partnerRating={(partner as any).rating ?? 0}
+          partnerReviewCount={(partner as any).review_count ?? 0}
+        />
       </div>
     </div>
   );
