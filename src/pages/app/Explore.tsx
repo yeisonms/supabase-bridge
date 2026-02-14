@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, List, Map as MapIcon, Loader2, Search, FlaskConical, Lock } from 'lucide-react';
+import FavoriteButton from '@/components/FavoriteButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -232,16 +233,13 @@ const Explore = () => {
             return (
               <Link to={`/app/gym/${p.id}`} key={p.id} className="block">
                 <div className={`bg-card rounded-xl p-4 shadow-card border flex gap-4 hover:shadow-elevated transition-shadow relative ${status === 'upgrade' ? 'opacity-60' : ''}`}>
-                  {status === 'no-plan' && (
-                    <div className="absolute top-3 right-3">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  {status === 'upgrade' && (
-                    <Badge variant="secondary" className="absolute top-3 right-3 text-[10px]">
-                      Plan Superior
-                    </Badge>
-                  )}
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+                    {status === 'no-plan' && <Lock className="h-4 w-4 text-muted-foreground" />}
+                    {status === 'upgrade' && (
+                      <Badge variant="secondary" className="text-[10px]">Plan Superior</Badge>
+                    )}
+                    <FavoriteButton partnerId={p.id} size={18} />
+                  </div>
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.name} className="w-20 h-20 rounded-lg object-cover shrink-0" />
                   ) : (

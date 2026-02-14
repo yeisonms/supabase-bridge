@@ -11,6 +11,7 @@ import {
   ChevronDown, Globe, Copy, Clock,
 } from 'lucide-react';
 import PhotoGallery from '@/components/gym/PhotoGallery';
+import FavoriteButton from '@/components/FavoriteButton';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -259,7 +260,10 @@ const GymDetail = () => {
           Volver
         </button>
 
-        <h1 className="text-3xl font-black text-foreground">{partner.name}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-black text-foreground">{partner.name}</h1>
+          <FavoriteButton partnerId={partner.id} size={24} className="ml-2" />
+        </div>
 
         <div className="flex items-center gap-2 mt-1.5">
           {partner.category && (
