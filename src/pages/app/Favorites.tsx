@@ -2,38 +2,41 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { MapPin, Heart, Loader2 } from 'lucide-react';
-import { useFavorites } from '@/hooks/use-favorites';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import FavoriteButton from '@/components/FavoriteButton';
 import type { Partner } from '@/types/database';
 
 const Favorites = () => {
-  const { favorites } = useFavorites();
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      if (favorites.length === 0) {
-        setPartners([]);
-        setLoading(false);
-        return;
-      }
-      const { data } = await supabase
+  const { data: partners = [], isLoading } = useQuery({
+    queryKey: ['favorite-partners', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      // Get favorite partner IDs first
+      const { data: favs, error: favError } = await supabase
+        .from('favorites' as any)
+        .select('partner_id')
+        .eq('user_id', user!.id);
+      if (favError) throw favError;
+      const ids = (favs as any[]).map((f) => f.partner_id as string);
+      if (ids.length === 0) return [];
+
+      const { data, error } = await supabase
         .from('partners')
         .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
-        .in('id', favorites);
-      setPartners((data as Partner[]) || []);
-      setLoading(false);
-    };
-    load();
-  }, [favorites]);
+        .in('id', ids);
+      if (error) throw error;
+      return (data as Partner[]) || [];
+    },
+  });
 
   return (
     <div className="px-4 pt-12 pb-4">
       <h1 className="text-2xl font-black mb-4">Favoritos</h1>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
