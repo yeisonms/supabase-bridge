@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle,
   Dumbbell, Mail, Phone, Lock, ArrowUpCircle, Ticket,
-  ChevronDown, Globe, Copy,
+  ChevronDown, Globe, Copy, Clock,
 } from 'lucide-react';
 import PhotoGallery from '@/components/gym/PhotoGallery';
 import type { Partner } from '@/types/database';
@@ -323,6 +323,19 @@ const GymDetail = () => {
               )}
             </div>
           </InfoAccordion>
+
+          {/* Horario */}
+          {(partner as any).opening_hours && (
+            <InfoAccordion
+              title="Horario"
+              subtitle={(partner as any).opening_hours}
+            >
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-foreground/80">{(partner as any).opening_hours}</span>
+              </div>
+            </InfoAccordion>
+          )}
 
           {/* Checkin button */}
           <div className="mt-6">{renderCheckinButton()}</div>
