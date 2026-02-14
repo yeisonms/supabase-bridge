@@ -1,34 +1,63 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { useCallback } from 'react';
 
-const STORAGE_KEY = 'gym-favorites';
-
-const getFavorites = (): string[] => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-};
+const FAVORITES_KEY = 'user-favorites';
 
 export const useFavorites = () => {
-  const [favorites, setFavorites] = useState<string[]>(getFavorites);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const handler = () => setFavorites(getFavorites());
-    window.addEventListener('favorites-changed', handler);
-    return () => window.removeEventListener('favorites-changed', handler);
-  }, []);
+  const { data: favorites = [] } = useQuery({
+    queryKey: [FAVORITES_KEY, user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('favorites' as any)
+        .select('partner_id')
+        .eq('user_id', user!.id);
+      if (error) throw error;
+      return (data as any[]).map((f) => f.partner_id as string);
+    },
+  });
 
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites]);
 
-  const toggleFavorite = useCallback((id: string) => {
-    setFavorites((prev) => {
-      const next = prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      window.dispatchEvent(new Event('favorites-changed'));
-      return next;
-    });
-  }, []);
+  const { mutate: toggleFavorite } = useMutation({
+    mutationFn: async (partnerId: string) => {
+      if (!user) throw new Error('No autenticado');
+      const removing = favorites.includes(partnerId);
+      if (removing) {
+        const { error } = await (supabase.from('favorites' as any) as any)
+          .delete()
+          .eq('partner_id', partnerId)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from('favorites' as any) as any)
+          .insert({ partner_id: partnerId, user_id: user.id });
+        if (error) throw error;
+      }
+      return { partnerId, removing };
+    },
+    onMutate: async (partnerId: string) => {
+      await queryClient.cancelQueries({ queryKey: [FAVORITES_KEY, user?.id] });
+      const previous = queryClient.getQueryData<string[]>([FAVORITES_KEY, user?.id]);
+      queryClient.setQueryData<string[]>([FAVORITES_KEY, user?.id], (old = []) =>
+        old.includes(partnerId) ? old.filter((id) => id !== partnerId) : [...old, partnerId]
+      );
+      return { previous };
+    },
+    onError: (_err, _partnerId, context) => {
+      queryClient.setQueryData([FAVORITES_KEY, user?.id], context?.previous);
+      toast.error('No se pudo actualizar favoritos');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [FAVORITES_KEY, user?.id] });
+    },
+  });
 
   return { favorites, isFavorite, toggleFavorite };
 };
