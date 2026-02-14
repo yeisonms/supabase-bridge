@@ -28,7 +28,7 @@ const AdminDashboard = () => {
         supabase.from('plans').select('id, price'),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'user'),
         supabase.from('checkins').select('id', { count: 'exact', head: true }).eq('checkin_date', today).eq('status', 'confirmed'),
-        supabase.from('partners').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo).eq('status', 'active'),
+        supabase.from('partners').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
         supabase.from('checkins').select('checkin_date').eq('status', 'confirmed').gte('checkin_date', thirtyDaysAgo),
       ]);
 
