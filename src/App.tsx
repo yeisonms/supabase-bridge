@@ -19,6 +19,7 @@ import PartnerLayout from "./pages/partner/PartnerLayout";
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
 import PartnerScanner from "./pages/partner/PartnerScanner";
 import PartnerRegister from "./pages/partner/PartnerRegister";
+import PartnerSettings from "./pages/partner/PartnerSettings";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminPartners from "./pages/admin/AdminPartners";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/partner" element={<PartnerLayout />}>
               <Route index element={<PartnerDashboard />} />
               <Route path="scanner" element={<PartnerScanner />} />
+              <Route path="settings" element={<PartnerSettings />} />
             </Route>
 
             {/* Super Admin portal */}

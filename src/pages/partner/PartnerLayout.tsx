@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 
 const PartnerLayout = () => {
   const { user, profile, loading } = useAuth();
@@ -31,10 +31,18 @@ const PartnerLayout = () => {
           <Link to="/partner" className="text-lg font-black">
             <span className="text-gradient">Red</span>Fit <span className="text-sm font-normal text-muted-foreground">Partner</span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground">
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </Button>
+          <div className="flex items-center gap-1">
+            <Link to="/partner/settings">
+              <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Ajustes</span>
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 text-muted-foreground">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Salir</span>
+            </Button>
+          </div>
         </div>
       </header>
       <Outlet />
