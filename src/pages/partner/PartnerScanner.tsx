@@ -4,12 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home, AlertTriangle, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home, AlertTriangle, User, ShieldCheck, ShieldX } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
 const QR_MAX_AGE_MS = 60000; // 1 minute
+
+type VerificationData = {
+  checkinId: string;
+  userName: string;
+  userPhoto: string | null;
+};
 
 type ScanResult = {
   success: boolean;
@@ -27,11 +33,14 @@ const PartnerScanner = () => {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<ScanResult>(null);
   const [scannerKey, setScannerKey] = useState(0);
+  const [verification, setVerification] = useState<VerificationData | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const processQR = useCallback(async (raw: string) => {
     if (processing) return;
     setProcessing(true);
     setResult(null);
+    setVerification(null);
 
     try {
       let parsed: { id?: string; timestamp?: number };
@@ -49,7 +58,6 @@ const PartnerScanner = () => {
         return;
       }
 
-      // Validation 1: Timestamp expiration
       if (!parsed.timestamp || typeof parsed.timestamp !== 'number') {
         setResult({ success: false, message: 'QR Caducado. Pida al usuario regenerarlo.', expired: true });
         setProcessing(false);
@@ -62,7 +70,6 @@ const PartnerScanner = () => {
         return;
       }
 
-      // Get partner id
       const { data: partner } = await supabase
         .from('partners')
         .select('id')
@@ -75,7 +82,7 @@ const PartnerScanner = () => {
         return;
       }
 
-      // Validation 2: Call validate_entry_qr RPC
+      // Call validate_entry_qr — now returns data WITHOUT confirming entry
       const { data, error } = await supabase.rpc('validate_entry_qr', {
         p_user_id: parsed.id,
         p_partner_id: partner.id,
@@ -86,13 +93,12 @@ const PartnerScanner = () => {
       } else {
         const res = data as any;
         if (res?.success) {
-          setResult({
-            success: true,
-            message: res.message || '¡ACCESO PERMITIDO!',
-            userName: res.user_name,
+          // Show verification modal instead of immediate access
+          setVerification({
+            checkinId: res.checkin_id || '',
+            userName: res.user_name || 'Usuario',
             userPhoto: res.user_photo ?? null,
           });
-          toast.success('Entrada validada');
         } else {
           setResult({ success: false, message: res?.message || 'No se pudo validar la entrada.' });
         }
@@ -103,13 +109,113 @@ const PartnerScanner = () => {
     setProcessing(false);
   }, [processing, user?.id]);
 
+  const handleConfirmAccess = async () => {
+    if (!verification?.checkinId || confirming) return;
+    setConfirming(true);
+
+    try {
+      const { data, error } = await supabase.rpc('confirm_access', {
+        p_checkin_id: verification.checkinId,
+      });
+
+      if (error) {
+        toast.error(error.message || 'Error al confirmar acceso.');
+        setConfirming(false);
+        return;
+      }
+
+      const res = data as any;
+      if (res?.success) {
+        setVerification(null);
+        setResult({
+          success: true,
+          message: '¡ACCESO PERMITIDO!',
+          userName: verification.userName,
+          userPhoto: verification.userPhoto,
+        });
+        toast.success('Entrada confirmada');
+      } else {
+        toast.error(res?.message || 'No se pudo confirmar el acceso.');
+      }
+    } catch {
+      toast.error('Error inesperado al confirmar acceso.');
+    }
+    setConfirming(false);
+  };
+
+  const handleReject = () => {
+    setVerification(null);
+    setResult(null);
+    setInput('');
+    setScannerKey((k) => k + 1);
+    toast.info('Acceso rechazado');
+  };
+
   const handleReset = () => {
     setResult(null);
+    setVerification(null);
     setInput('');
     setScannerKey((k) => k + 1);
   };
 
-  // Full-screen result overlay
+  // Verification modal (step 1: identity check)
+  if (verification) {
+    const hasPhoto = !!verification.userPhoto;
+
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6 bg-amber-500">
+        <div className="text-center text-white max-w-sm">
+          <ShieldCheck className="h-12 w-12 mx-auto mb-4 opacity-80" />
+          <h1 className="text-2xl font-black mb-1">VERIFICACIÓN DE IDENTIDAD</h1>
+          <p className="text-sm opacity-80 mb-6">Confirme que la persona coincide con la foto</p>
+
+          <Avatar className="h-36 w-36 mx-auto mb-4 border-4 border-white/60 shadow-2xl">
+            {hasPhoto ? (
+              <AvatarImage src={verification.userPhoto!} alt={verification.userName} />
+            ) : null}
+            <AvatarFallback className="bg-white/20 text-white text-4xl">
+              <User className="h-16 w-16" />
+            </AvatarFallback>
+          </Avatar>
+
+          {!hasPhoto && (
+            <div className="bg-red-500/30 border border-red-300/50 rounded-xl px-4 py-2 mb-3 inline-flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-200 shrink-0" />
+              <span className="text-sm text-red-100 font-medium">Solicitar Documento de Identidad (Sin Foto)</span>
+            </div>
+          )}
+
+          <p className="text-2xl font-bold mb-2">{verification.userName}</p>
+          <p className="text-lg font-medium mb-8 opacity-90">¿La foto coincide con la persona?</p>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handleReject}
+              size="lg"
+              className="flex-1 rounded-full py-6 text-lg bg-red-600 hover:bg-red-700 text-white border-0"
+            >
+              <ShieldX className="h-5 w-5 mr-2" /> RECHAZAR
+            </Button>
+            <Button
+              onClick={handleConfirmAccess}
+              disabled={confirming}
+              size="lg"
+              className="flex-1 rounded-full py-6 text-lg bg-emerald-600 hover:bg-emerald-700 text-white border-0"
+            >
+              {confirming ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <CheckCircle className="h-5 w-5 mr-2" />
+              )}
+              PERMITIR
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Final result overlay (success or error)
   if (result) {
     const isExpired = result.expired;
     const hasPhoto = !!result.userPhoto;
@@ -133,7 +239,6 @@ const PartnerScanner = () => {
         <div className="text-center text-white">
           {result.success ? (
             <>
-              {/* User photo */}
               <Avatar className="h-28 w-28 mx-auto mb-4 border-4 border-white/50 shadow-lg">
                 {hasPhoto ? (
                   <AvatarImage src={result.userPhoto!} alt={result.userName || 'Usuario'} />
@@ -143,22 +248,12 @@ const PartnerScanner = () => {
                 </AvatarFallback>
               </Avatar>
 
-              {/* No-photo warning */}
-              {!hasPhoto && (
-                <div className="bg-amber-500/30 border border-amber-300/50 rounded-xl px-4 py-2 mb-4 inline-flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-amber-200 shrink-0" />
-                  <span className="text-sm text-amber-100">Solicitar Documento de Identidad (Sin Foto)</span>
-                </div>
-              )}
-
               <CheckCircle className="h-16 w-16 mx-auto mb-3" />
               <h1 className="text-3xl font-black mb-1">ACCESO PERMITIDO</h1>
               {result.userName && (
                 <p className="text-2xl font-semibold mb-2">{result.userName}</p>
               )}
-              <p className="text-sm opacity-80 mb-6 max-w-xs mx-auto">
-                Verifique que la foto coincida con la persona.
-              </p>
+              <p className="text-sm opacity-80 mb-6">Entrada confirmada por el recepcionista.</p>
             </>
           ) : (
             <>
@@ -171,11 +266,6 @@ const PartnerScanner = () => {
                 {isExpired ? 'QR CADUCADO' : 'ACCESO DENEGADO'}
               </h1>
               <p className="text-lg opacity-90 mb-8 max-w-sm mx-auto">{result.message}</p>
-              {!isExpired && (
-                <p className="text-sm opacity-75 mb-8 max-w-xs mx-auto">
-                  Pídele al usuario que reserve su cupo desde la app antes de ingresar.
-                </p>
-              )}
             </>
           )}
 
@@ -212,7 +302,6 @@ const PartnerScanner = () => {
         Escanea el código QR del usuario para validar su entrada.
       </p>
 
-      {/* Mode toggle */}
       <div className="flex gap-2 mb-6">
         <Button
           variant={mode === 'camera' ? 'default' : 'outline'}
