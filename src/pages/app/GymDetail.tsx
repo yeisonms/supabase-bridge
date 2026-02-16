@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft, MapPin, Users, Loader2, CheckCircle, XCircle,
   Dumbbell, Mail, Phone, Lock, ArrowUpCircle, Ticket,
-  ChevronDown, Globe, Copy, Clock,
+  ChevronDown, Globe, Copy, Clock, Camera,
 } from 'lucide-react';
 import PhotoGallery from '@/components/gym/PhotoGallery';
 import FavoriteButton from '@/components/FavoriteButton';
@@ -50,14 +50,14 @@ const GymDetail = () => {
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
 
-  // Fetch user subscription
+  // Fetch user subscription + avatar
   const { data: userSub } = useQuery({
     queryKey: ['user-sub-gym', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('current_plan_id, subscription_status')
+        .select('current_plan_id, subscription_status, avatar_url')
         .eq('id', user!.id)
         .single();
       return data;
@@ -79,6 +79,7 @@ const GymDetail = () => {
 
   const isActive = userSub?.subscription_status === 'active';
   const userAccessLevel = isActive ? (userPlan?.access_level ?? 0) : 0;
+  const hasAvatar = !!(userSub?.avatar_url && userSub.avatar_url.trim() !== '');
 
   // Fetch required plan name for this gym
   const { data: requiredPlan } = useQuery({
@@ -232,6 +233,21 @@ const GymDetail = () => {
         <Button disabled variant="secondary" className="w-full rounded-full py-6" size="lg">
           <XCircle className="h-5 w-5 mr-2" /> Cupo agotado
         </Button>
+      );
+    }
+    if (!hasAvatar) {
+      return (
+        <div className="space-y-2">
+          <Button disabled variant="secondary" size="lg" className="w-full rounded-full py-6 opacity-60">
+            <Camera className="h-5 w-5 mr-2" /> Falta Foto de Perfil
+          </Button>
+          <p className="text-sm text-destructive text-center">
+            Debes subir una foto de perfil para poder reservar.{' '}
+            <Link to="/app/profile" className="underline font-semibold text-primary">
+              Subir foto ahora
+            </Link>
+          </p>
+        </div>
       );
     }
     return (
