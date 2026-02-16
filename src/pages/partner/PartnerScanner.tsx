@@ -3,12 +3,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home, AlertTriangle, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Scanner } from '@yudiel/react-qr-scanner';
 
-type ScanResult = { success: boolean; message: string; userName?: string } | null;
+const QR_MAX_AGE_MS = 60000; // 1 minute
+
+type ScanResult = {
+  success: boolean;
+  message: string;
+  userName?: string;
+  userPhoto?: string | null;
+  expired?: boolean;
+} | null;
 
 const PartnerScanner = () => {
   const { user } = useAuth();
@@ -25,7 +34,7 @@ const PartnerScanner = () => {
     setResult(null);
 
     try {
-      let parsed: { id?: string };
+      let parsed: { id?: string; timestamp?: number };
       try {
         parsed = JSON.parse(raw);
       } catch {
@@ -36,6 +45,19 @@ const PartnerScanner = () => {
 
       if (!parsed.id || typeof parsed.id !== 'string') {
         setResult({ success: false, message: 'Código QR inválido. Falta el ID del usuario.' });
+        setProcessing(false);
+        return;
+      }
+
+      // Validation 1: Timestamp expiration
+      if (!parsed.timestamp || typeof parsed.timestamp !== 'number') {
+        setResult({ success: false, message: 'QR Caducado. Pida al usuario regenerarlo.', expired: true });
+        setProcessing(false);
+        return;
+      }
+
+      if (Date.now() - parsed.timestamp > QR_MAX_AGE_MS) {
+        setResult({ success: false, message: 'QR Caducado. Pida al usuario regenerarlo.', expired: true });
         setProcessing(false);
         return;
       }
@@ -53,7 +75,7 @@ const PartnerScanner = () => {
         return;
       }
 
-      // Call validate_entry_qr RPC
+      // Validation 2: Call validate_entry_qr RPC
       const { data, error } = await supabase.rpc('validate_entry_qr', {
         p_user_id: parsed.id,
         p_partner_id: partner.id,
@@ -64,7 +86,12 @@ const PartnerScanner = () => {
       } else {
         const res = data as any;
         if (res?.success) {
-          setResult({ success: true, message: res.message || '¡ACCESO PERMITIDO!', userName: res.user_name });
+          setResult({
+            success: true,
+            message: res.message || '¡ACCESO PERMITIDO!',
+            userName: res.user_name,
+            userPhoto: res.user_photo ?? null,
+          });
           toast.success('Entrada validada');
         } else {
           setResult({ success: false, message: res?.message || 'No se pudo validar la entrada.' });
@@ -84,11 +111,16 @@ const PartnerScanner = () => {
 
   // Full-screen result overlay
   if (result) {
+    const isExpired = result.expired;
+    const hasPhoto = !!result.userPhoto;
+
     return (
       <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center px-6 ${
         result.success
           ? 'bg-emerald-600'
-          : 'bg-destructive'
+          : isExpired
+            ? 'bg-amber-600'
+            : 'bg-destructive'
       }`}>
         <button
           onClick={() => navigate('/partner')}
@@ -97,24 +129,56 @@ const PartnerScanner = () => {
         >
           <ArrowLeft className="h-6 w-6 text-white" />
         </button>
+
         <div className="text-center text-white">
           {result.success ? (
-            <CheckCircle className="h-24 w-24 mx-auto mb-6" />
+            <>
+              {/* User photo */}
+              <Avatar className="h-28 w-28 mx-auto mb-4 border-4 border-white/50 shadow-lg">
+                {hasPhoto ? (
+                  <AvatarImage src={result.userPhoto!} alt={result.userName || 'Usuario'} />
+                ) : null}
+                <AvatarFallback className="bg-white/20 text-white text-3xl">
+                  <User className="h-12 w-12" />
+                </AvatarFallback>
+              </Avatar>
+
+              {/* No-photo warning */}
+              {!hasPhoto && (
+                <div className="bg-amber-500/30 border border-amber-300/50 rounded-xl px-4 py-2 mb-4 inline-flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-200 shrink-0" />
+                  <span className="text-sm text-amber-100">Solicitar Documento de Identidad (Sin Foto)</span>
+                </div>
+              )}
+
+              <CheckCircle className="h-16 w-16 mx-auto mb-3" />
+              <h1 className="text-3xl font-black mb-1">ACCESO PERMITIDO</h1>
+              {result.userName && (
+                <p className="text-2xl font-semibold mb-2">{result.userName}</p>
+              )}
+              <p className="text-sm opacity-80 mb-6 max-w-xs mx-auto">
+                Verifique que la foto coincida con la persona.
+              </p>
+            </>
           ) : (
-            <XCircle className="h-24 w-24 mx-auto mb-6" />
+            <>
+              {isExpired ? (
+                <AlertTriangle className="h-24 w-24 mx-auto mb-6" />
+              ) : (
+                <XCircle className="h-24 w-24 mx-auto mb-6" />
+              )}
+              <h1 className="text-3xl font-black mb-3">
+                {isExpired ? 'QR CADUCADO' : 'ACCESO DENEGADO'}
+              </h1>
+              <p className="text-lg opacity-90 mb-8 max-w-sm mx-auto">{result.message}</p>
+              {!isExpired && (
+                <p className="text-sm opacity-75 mb-8 max-w-xs mx-auto">
+                  Pídele al usuario que reserve su cupo desde la app antes de ingresar.
+                </p>
+              )}
+            </>
           )}
-          <h1 className="text-3xl font-black mb-3">
-            {result.success ? 'ACCESO PERMITIDO' : 'ACCESO DENEGADO'}
-          </h1>
-          {result.userName && (
-            <p className="text-xl font-semibold mb-2">{result.userName}</p>
-          )}
-          <p className="text-lg opacity-90 mb-8 max-w-sm mx-auto">{result.message}</p>
-          {!result.success && (
-            <p className="text-sm opacity-75 mb-8 max-w-xs mx-auto">
-              Pídele al usuario que reserve su cupo desde la app antes de ingresar.
-            </p>
-          )}
+
           <div className="flex gap-3">
             <Button
               onClick={handleReset}
