@@ -1,15 +1,16 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, UserCircle, CreditCard, Phone, Mail, User as UserIcon } from 'lucide-react';
+import { LogOut, CreditCard, Phone, Mail, User as UserIcon } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-
+import ProfileAvatarUpload from '@/components/profile/ProfileAvatarUpload';
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Read subscription from profiles table (where checkout writes)
   const { data: profileSub, isLoading } = useQuery({
@@ -18,7 +19,7 @@ const Profile = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('current_plan_id, subscription_status, plan_start_date, plan_end_date')
+        .select('current_plan_id, subscription_status, plan_start_date, plan_end_date, avatar_url')
         .eq('id', user!.id)
         .single();
       if (error) throw error;
@@ -54,11 +55,17 @@ const Profile = () => {
 
       {/* Datos personales */}
       <div className="bg-card rounded-2xl p-6 shadow-card border">
-        <div className="flex items-center gap-4 mb-5">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            <UserCircle className="h-8 w-8 text-primary" />
-          </div>
-          <div>
+        <div className="flex flex-col items-center gap-4 mb-5">
+          <ProfileAvatarUpload
+            userId={user?.id || ''}
+            avatarUrl={profileSub?.avatar_url || null}
+            firstName={profile?.first_name || null}
+            lastName={profile?.last_name || null}
+            onAvatarUpdated={() => {
+              queryClient.invalidateQueries({ queryKey: ['profile-subscription', user?.id] });
+            }}
+          />
+          <div className="text-center">
             <p className="font-bold text-lg">
               {profile?.first_name || ''} {profile?.last_name || ''}
             </p>
