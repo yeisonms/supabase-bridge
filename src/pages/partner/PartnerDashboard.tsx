@@ -21,6 +21,7 @@ type CheckinRow = {
 type ProfileInfo = {
   first_name: string | null;
   last_name: string | null;
+  phone: string | null;
 };
 
 const PartnerDashboard = () => {
@@ -99,11 +100,11 @@ const PartnerDashboard = () => {
         const userIds = [...new Set(checkins.map((c) => c.user_id))];
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name')
+          .select('id, first_name, last_name, phone')
           .in('id', userIds);
         const profileMap: Record<string, ProfileInfo> = {};
         (profiles || []).forEach((pr: any) => {
-          profileMap[pr.id] = { first_name: pr.first_name, last_name: pr.last_name };
+          profileMap[pr.id] = { first_name: pr.first_name, last_name: pr.last_name, phone: pr.phone ?? null };
         });
         setTodayCheckins(checkins.map((c) => ({ ...c, profile: profileMap[c.user_id] })));
       } else {
@@ -249,9 +250,11 @@ const PartnerDashboard = () => {
               </thead>
               <tbody>
                 {todayCheckins.map((c) => {
-                  const name = c.profile
-                    ? `${c.profile.first_name || ''} ${c.profile.last_name || ''}`.trim() || 'Usuario Sin Nombre'
-                    : 'Usuario Sin Nombre';
+                  const fullName = c.profile
+                    ? `${c.profile.first_name || ''} ${c.profile.last_name || ''}`.trim()
+                    : '';
+                  const name = fullName
+                    || (c.profile?.phone ? c.profile.phone : `Usuario #${c.user_id.slice(-5).toUpperCase()}`);
                   const time = c.created_at ? format(parseISO(c.created_at), 'HH:mm', { locale: es }) : '--:--';
                   const isConfirmed = c.status === 'confirmed';
                   const statusLabel = isConfirmed ? 'Confirmado' : c.status === 'reserved' ? 'Reservado' : c.status;
