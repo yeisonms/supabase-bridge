@@ -99,9 +99,7 @@ const PartnerDashboard = () => {
       if (checkins.length > 0) {
         const userIds = [...new Set(checkins.map((c) => c.user_id))];
         const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, phone')
-          .in('id', userIds);
+          .rpc('get_checkin_profiles', { p_user_ids: userIds });
         const profileMap: Record<string, ProfileInfo> = {};
         (profiles || []).forEach((pr: any) => {
           profileMap[pr.id] = { first_name: pr.first_name, last_name: pr.last_name, phone: pr.phone ?? null };
