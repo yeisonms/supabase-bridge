@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, MapPin, ImagePlus, X } from 'lucide-react';
+import { Building2, ImagePlus, X } from 'lucide-react';
+import LocationPicker from '@/components/LocationPicker';
 
 const CATEGORIES = ['Gym', 'Crossfit', 'Yoga', 'Pilates', 'Boxing', 'MMA', 'Funcional', 'Otro'];
 
@@ -24,8 +25,8 @@ const PartnerRegister = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
+  const [lat, setLat] = useState(4.5709);
+  const [lng, setLng] = useState(-74.2973);
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -79,23 +80,14 @@ const PartnerRegister = () => {
       return;
     }
 
-    if (!gymName.trim() || !address.trim() || !category || !lat || !lng || !email.trim() || !phone.trim()) {
+    if (!gymName.trim() || !address.trim() || !category || !email.trim() || !phone.trim()) {
       toast({ title: 'Campos requeridos', description: 'Completa todos los campos obligatorios.', variant: 'destructive' });
       return;
     }
 
-    const parsedLat = parseFloat(lat);
-    const parsedLng = parseFloat(lng);
+    const parsedLat = lat;
+    const parsedLng = lng;
     const parsedPrice = parseFloat(price) || 0;
-
-    if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
-      toast({ title: 'Latitud inválida', description: 'Debe ser un número entre -90 y 90.', variant: 'destructive' });
-      return;
-    }
-    if (isNaN(parsedLng) || parsedLng < -180 || parsedLng > 180) {
-      toast({ title: 'Longitud inválida', description: 'Debe ser un número entre -180 y 180.', variant: 'destructive' });
-      return;
-    }
 
     setSubmitting(true);
 
@@ -271,40 +263,15 @@ const PartnerRegister = () => {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <Label>Ubicación *</Label>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="lat" className="text-xs text-muted-foreground">Latitud</Label>
-                <Input
-                  id="lat"
-                  type="number"
-                  step="any"
-                  min="-90"
-                  max="90"
-                  value={lat}
-                  onChange={(e) => setLat(e.target.value)}
-                  placeholder="19.4326"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="lng" className="text-xs text-muted-foreground">Longitud</Label>
-                <Input
-                  id="lng"
-                  type="number"
-                  step="any"
-                  min="-180"
-                  max="180"
-                  value={lng}
-                  onChange={(e) => setLng(e.target.value)}
-                  placeholder="-99.1332"
-                  required
-                />
-              </div>
-            </div>
+            <Label>Ubicación *</Label>
+            <LocationPicker
+              lat={lat}
+              lng={lng}
+              onChange={(newLat, newLng) => {
+                setLat(newLat);
+                setLng(newLng);
+              }}
+            />
           </div>
 
           {/* Fotos del gimnasio */}
