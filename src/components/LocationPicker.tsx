@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Locate } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Fix default marker icon issue with webpack/vite
+// Fix default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -22,45 +21,54 @@ type Props = {
   onChange: (lat: number, lng: number) => void;
 };
 
-function DraggableMarker({ lat, lng, onChange }: Props) {
-  const markerRef = useRef<L.Marker>(null);
-
-  useMapEvents({
-    click(e) {
-      onChange(e.latlng.lat, e.latlng.lng);
-    },
-  });
-
-  return (
-    <Marker
-      position={[lat, lng]}
-      draggable
-      ref={markerRef}
-      eventHandlers={{
-        dragend() {
-          const marker = markerRef.current;
-          if (marker) {
-            const pos = marker.getLatLng();
-            onChange(pos.lat, pos.lng);
-          }
-        },
-      }}
-    />
-  );
-}
-
-function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo([lat, lng], 15, { duration: 1 });
-  }, [lat, lng, map]);
-  return null;
-}
-
 export default function LocationPicker({ lat, lng, onChange }: Props) {
   const { toast } = useToast();
-  const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number } | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [locating, setLocating] = useState(false);
+
+  // Initialize map once
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+
+    const map = L.map(containerRef.current).setView([lat, lng], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng();
+      onChange(pos.lat, pos.lng);
+    });
+
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      marker.setLatLng(e.latlng);
+      onChange(e.latlng.lat, e.latlng.lng);
+    });
+
+    mapRef.current = map;
+    markerRef.current = marker;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync marker position when lat/lng change externally
+  useEffect(() => {
+    if (markerRef.current) {
+      const currentPos = markerRef.current.getLatLng();
+      if (Math.abs(currentPos.lat - lat) > 0.0001 || Math.abs(currentPos.lng - lng) > 0.0001) {
+        markerRef.current.setLatLng([lat, lng]);
+      }
+    }
+  }, [lat, lng]);
 
   const handleGeolocate = () => {
     if (!navigator.geolocation) {
@@ -73,7 +81,8 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
         const newLat = pos.coords.latitude;
         const newLng = pos.coords.longitude;
         onChange(newLat, newLng);
-        setFlyTarget({ lat: newLat, lng: newLng });
+        markerRef.current?.setLatLng([newLat, newLng]);
+        mapRef.current?.flyTo([newLat, newLng], 15, { duration: 1 });
         toast({ title: '📍 Ubicación detectada', description: 'El mapa se centró en tu posición actual.' });
         setLocating(false);
       },
@@ -98,21 +107,7 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
         {locating ? 'Obteniendo ubicación…' : 'Usar mi ubicación actual'}
       </Button>
 
-      <div className="rounded-xl overflow-hidden border border-border h-64">
-        <MapContainer
-          center={[lat, lng]}
-          zoom={6}
-          scrollWheelZoom
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <DraggableMarker lat={lat} lng={lng} onChange={onChange} />
-          {flyTarget && <RecenterMap lat={flyTarget.lat} lng={flyTarget.lng} />}
-        </MapContainer>
-      </div>
+      <div ref={containerRef} className="rounded-xl overflow-hidden border border-border h-64 z-0" />
 
       <div className="grid grid-cols-2 gap-3">
         <div>
