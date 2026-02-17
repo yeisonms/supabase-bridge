@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Upload, Trash2, Save, ImagePlus, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import LocationPicker from '@/components/LocationPicker';
 
 type PartnerData = {
   id: string;
@@ -17,6 +18,7 @@ type PartnerData = {
   email: string | null;
   opening_hours: string | null;
   photos: string[] | null;
+  location: any;
 };
 
 const PartnerSettings = () => {
@@ -35,13 +37,15 @@ const PartnerSettings = () => {
   const [openingHours, setOpeningHours] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [lat, setLat] = useState(4.5709);
+  const [lng, setLng] = useState(-74.2973);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       const { data, error } = await supabase
         .from('partners')
-        .select('id, name, address, description, phone, email, opening_hours, photos')
+        .select('id, name, address, description, phone, email, opening_hours, photos, location')
         .eq('admin_user_id', user.id)
         .single();
 
@@ -55,6 +59,12 @@ const PartnerSettings = () => {
       setOpeningHours((data as any).opening_hours || '');
       setPhone((data as any).phone || '');
       setEmail((data as any).email || '');
+      // Extract coordinates from PostGIS point
+      const loc = (data as any).location;
+      if (loc && typeof loc === 'object' && loc.coordinates) {
+        setLng(loc.coordinates[0]);
+        setLat(loc.coordinates[1]);
+      }
       setLoading(false);
     };
     load();
@@ -63,9 +73,10 @@ const PartnerSettings = () => {
   const handleSaveInfo = async () => {
     if (!partner) return;
     setSaving(true);
+    const locationPoint = `SRID=4326;POINT(${lng} ${lat})`;
     const { error } = await supabase
       .from('partners')
-      .update({ description, opening_hours: openingHours, phone, email } as any)
+      .update({ description, opening_hours: openingHours, phone, email, location: locationPoint } as any)
       .eq('id', partner.id);
 
     setSaving(false);
@@ -293,6 +304,18 @@ const PartnerSettings = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="contacto@migym.com"
               type="email"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-muted-foreground mb-1 block">Ubicación en el Mapa</label>
+            <LocationPicker
+              lat={lat}
+              lng={lng}
+              onChange={(newLat, newLng) => {
+                setLat(newLat);
+                setLng(newLng);
+              }}
             />
           </div>
         </div>
