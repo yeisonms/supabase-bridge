@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Locate } from 'lucide-react';
+import { Locate, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Fix default marker icon
@@ -27,6 +27,8 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
   const markerRef = useRef<L.Marker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [locating, setLocating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
 
   // Initialize map once
   useEffect(() => {
@@ -94,8 +96,51 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
     );
   };
 
+  const handleSearch = async () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&accept-language=es&limit=1`
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const newLat = parseFloat(data[0].lat);
+        const newLng = parseFloat(data[0].lon);
+        onChange(newLat, newLng);
+        markerRef.current?.setLatLng([newLat, newLng]);
+        mapRef.current?.flyTo([newLat, newLng], 15, { duration: 1 });
+        toast({ title: '📍 Dirección encontrada', description: data[0].display_name?.slice(0, 80) });
+      } else {
+        toast({ title: 'Dirección no encontrada', description: 'Intenta ser más específico.', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error de búsqueda', description: 'No se pudo conectar al servicio.', variant: 'destructive' });
+    }
+    setSearching(false);
+  };
+
   return (
     <div className="space-y-3">
+      {/* Address search */}
+      <form
+        onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+        className="flex gap-2"
+      >
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Escribe la dirección y presiona Buscar..."
+          className="flex-1"
+        />
+        <Button type="submit" variant="outline" className="gap-2 shrink-0" disabled={searching}>
+          <Search className="h-4 w-4" />
+          {searching ? 'Buscando…' : 'Buscar'}
+        </Button>
+      </form>
+
+      {/* Geolocation */}
       <Button
         type="button"
         variant="outline"
