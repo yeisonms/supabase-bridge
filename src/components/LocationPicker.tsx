@@ -3,7 +3,7 @@ import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Locate } from 'lucide-react';
+import { Locate, Building2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCZCXIl1zzKmGt-MXTrdyfUxYBUSfUtecw';
@@ -18,6 +18,7 @@ type Props = {
 export default function LocationPicker({ lat, lng, onChange }: Props) {
   const { toast } = useToast();
   const [locating, setLocating] = useState(false);
+  const [searchMode, setSearchMode] = useState<'name' | 'address'>('name');
   const mapRef = useRef<google.maps.Map | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,14 +42,22 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
     mapRef.current = map;
   }, []);
 
-  // Setup Places Autocomplete once loaded
+  // Setup Places Autocomplete – rebuild when searchMode changes
   useEffect(() => {
-    if (!isLoaded || !inputRef.current || autocompleteRef.current) return;
+    if (!isLoaded || !inputRef.current) return;
 
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ['establishment'],
+    // Clean up previous instance
+    if (autocompleteRef.current) {
+      google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      autocompleteRef.current = null;
+    }
+
+    const options: google.maps.places.AutocompleteOptions = {
+      types: searchMode === 'name' ? ['establishment'] : ['address'],
       fields: ['geometry', 'formatted_address', 'name'],
-    });
+    };
+
+    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, options);
 
     autocomplete.addListener('place_changed', () => {
       const place = autocomplete.getPlace();
@@ -69,7 +78,7 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
     });
 
     autocompleteRef.current = autocomplete;
-  }, [isLoaded, onChange, toast]);
+  }, [isLoaded, onChange, toast, searchMode]);
 
   // Bias autocomplete to current map bounds
   useEffect(() => {
@@ -117,10 +126,34 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* Search mode toggle */}
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant={searchMode === 'name' ? 'default' : 'outline'}
+          size="sm"
+          className="flex-1 gap-2"
+          onClick={() => setSearchMode('name')}
+        >
+          <Building2 className="h-4 w-4" />
+          Por nombre
+        </Button>
+        <Button
+          type="button"
+          variant={searchMode === 'address' ? 'default' : 'outline'}
+          size="sm"
+          className="flex-1 gap-2"
+          onClick={() => setSearchMode('address')}
+        >
+          <MapPin className="h-4 w-4" />
+          Por dirección
+        </Button>
+      </div>
+
       {/* Places Autocomplete */}
       <Input
         ref={inputRef}
-        placeholder="Busca tu gimnasio o dirección..."
+        placeholder={searchMode === 'name' ? 'Busca tu gimnasio por nombre...' : 'Escribe la dirección...'}
         className="w-full"
         onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
       />
