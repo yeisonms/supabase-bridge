@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Loader2, AlertTriangle, DollarSign, TrendingUp, Clock, CheckCircle, CalendarClock } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, DollarSign, TrendingUp, Clock, CheckCircle, CalendarClock, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const RATE_PER_VISIT = 5000;
+
 
 type CheckinRow = {
   id: string;
@@ -134,8 +135,10 @@ const PartnerDashboard = () => {
     ? Math.min((todayTotal / partner.daily_capacity_limit) * 100, 100)
     : 0;
 
-  const estimatedRevenue = monthConfirmedTotal * RATE_PER_VISIT;
+  const ratePerVisit = partner.rate_per_visit ?? 0;
+  const estimatedRevenue = monthConfirmedTotal * ratePerVisit;
 
+  const formatCOP = (v: number) => `$${v.toLocaleString('es-CO')}`;
   return (
     <div className="px-4 pt-8 pb-12 max-w-2xl mx-auto">
       {partner.is_active === false && (
@@ -194,16 +197,24 @@ const PartnerDashboard = () => {
       </div>
 
       {/* Revenue */}
-      <div className="bg-card rounded-2xl p-5 shadow-card border mb-6">
+      <div className="bg-card rounded-2xl p-5 shadow-card border mb-4">
         <div className="flex items-center gap-2 mb-3">
           <DollarSign className="h-4 w-4 text-primary" />
           <h2 className="font-bold text-sm">Ingresos Estimados (este mes)</h2>
         </div>
-        <div className="text-3xl font-black">${estimatedRevenue.toLocaleString('es-CO')}</div>
+        <div className="text-3xl font-black">{formatCOP(estimatedRevenue)} COP</div>
         <p className="text-xs text-muted-foreground mt-1">
-          {monthConfirmedTotal} check-ins confirmados × ${RATE_PER_VISIT.toLocaleString('es-CO')}
+          {monthConfirmedTotal} check-ins confirmados × {formatCOP(ratePerVisit)}
         </p>
       </div>
+
+      {/* Settlement Alert */}
+      <Alert className="mb-6 border-primary/30 bg-primary/5">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm">
+          Este mes has recibido <span className="font-bold">{monthConfirmedTotal}</span> visitas válidas × <span className="font-bold">{formatCOP(ratePerVisit)}</span> = <span className="font-bold">{formatCOP(estimatedRevenue)}</span>, a liquidar el día 5 del próximo mes.
+        </AlertDescription>
+      </Alert>
 
       {/* Monthly chart — only confirmed */}
       <div className="bg-card rounded-2xl p-5 shadow-card border mb-6">
