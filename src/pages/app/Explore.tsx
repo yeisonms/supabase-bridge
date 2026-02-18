@@ -72,6 +72,7 @@ const Explore = () => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: 'AIzaSyCZCXIl1zzKmGt-MXTrdyfUxYBUSfUtecw',
+    libraries: ['places'],
   });
 
   const searchNearby = useCallback(async (lat: number, lng: number) => {
