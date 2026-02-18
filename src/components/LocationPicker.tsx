@@ -1,19 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Locate, Search } from 'lucide-react';
+import { Locate } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Fix default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCZCXIl1zzKmGt-MXTrdyfUxYBUSfUtecw';
+const LIBRARIES: ('places')[] = ['places'];
 
 type Props = {
   lat: number;
@@ -23,54 +17,78 @@ type Props = {
 
 export default function LocationPicker({ lat, lng, onChange }: Props) {
   const { toast } = useToast();
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [locating, setLocating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searching, setSearching] = useState(false);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [markerPos, setMarkerPos] = useState<google.maps.LatLngLiteral>({ lat, lng });
 
-  // Initialize map once
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+  });
+
+  // Sync marker when props change externally
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-
-    const map = L.map(containerRef.current).setView([lat, lng], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-
-    const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-
-    marker.on('dragend', () => {
-      const pos = marker.getLatLng();
-      onChange(pos.lat, pos.lng);
-    });
-
-    map.on('click', (e: L.LeafletMouseEvent) => {
-      marker.setLatLng(e.latlng);
-      onChange(e.latlng.lat, e.latlng.lng);
-    });
-
-    mapRef.current = map;
-    markerRef.current = marker;
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      markerRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync marker position when lat/lng change externally
-  useEffect(() => {
-    if (markerRef.current) {
-      const currentPos = markerRef.current.getLatLng();
-      if (Math.abs(currentPos.lat - lat) > 0.0001 || Math.abs(currentPos.lng - lng) > 0.0001) {
-        markerRef.current.setLatLng([lat, lng]);
-      }
+    setMarkerPos({ lat, lng });
+    if (mapRef.current) {
+      mapRef.current.panTo({ lat, lng });
     }
   }, [lat, lng]);
+
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  // Setup Places Autocomplete once loaded
+  useEffect(() => {
+    if (!isLoaded || !inputRef.current || autocompleteRef.current) return;
+
+    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+      types: ['address', 'establishment'],
+      fields: ['geometry', 'formatted_address', 'name'],
+    });
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.geometry?.location) {
+        const newLat = place.geometry.location.lat();
+        const newLng = place.geometry.location.lng();
+        setMarkerPos({ lat: newLat, lng: newLng });
+        onChange(newLat, newLng);
+        mapRef.current?.panTo({ lat: newLat, lng: newLng });
+        mapRef.current?.setZoom(17);
+        toast({
+          title: '📍 Ubicación encontrada',
+          description: place.formatted_address || place.name || 'Dirección seleccionada',
+        });
+      } else {
+        toast({ title: 'Sin resultados', description: 'No se encontró la ubicación.', variant: 'destructive' });
+      }
+    });
+
+    autocompleteRef.current = autocomplete;
+  }, [isLoaded, onChange, toast]);
+
+  // Bias autocomplete to current map bounds
+  useEffect(() => {
+    if (!autocompleteRef.current || !mapRef.current) return;
+    const listener = mapRef.current.addListener('bounds_changed', () => {
+      const bounds = mapRef.current?.getBounds();
+      if (bounds) autocompleteRef.current?.setBounds(bounds);
+    });
+    return () => google.maps.event.removeListener(listener);
+  }, [isLoaded]);
+
+  const handleDragEnd = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const newLat = e.latLng.lat();
+      const newLng = e.latLng.lng();
+      setMarkerPos({ lat: newLat, lng: newLng });
+      onChange(newLat, newLng);
+    }
+  }, [onChange]);
 
   const handleGeolocate = () => {
     if (!navigator.geolocation) {
@@ -82,9 +100,10 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
       (pos) => {
         const newLat = pos.coords.latitude;
         const newLng = pos.coords.longitude;
+        setMarkerPos({ lat: newLat, lng: newLng });
         onChange(newLat, newLng);
-        markerRef.current?.setLatLng([newLat, newLng]);
-        mapRef.current?.flyTo([newLat, newLng], 15, { duration: 1 });
+        mapRef.current?.panTo({ lat: newLat, lng: newLng });
+        mapRef.current?.setZoom(15);
         toast({ title: '📍 Ubicación detectada', description: 'El mapa se centró en tu posición actual.' });
         setLocating(false);
       },
@@ -92,66 +111,44 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
         toast({ title: 'Permiso denegado', description: 'No se pudo obtener tu ubicación.', variant: 'destructive' });
         setLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
-  };
-
-  const handleSearch = async () => {
-    const q = searchQuery.trim();
-    if (!q) return;
-    setSearching(true);
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&accept-language=es&limit=1`
-      );
-      const data = await res.json();
-      if (data && data.length > 0) {
-        const newLat = parseFloat(data[0].lat);
-        const newLng = parseFloat(data[0].lon);
-        onChange(newLat, newLng);
-        markerRef.current?.setLatLng([newLat, newLng]);
-        mapRef.current?.flyTo([newLat, newLng], 15, { duration: 1 });
-        toast({ title: '📍 Dirección encontrada', description: data[0].display_name?.slice(0, 80) });
-      } else {
-        toast({ title: 'Dirección no encontrada', description: 'Intenta ser más específico.', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Error de búsqueda', description: 'No se pudo conectar al servicio.', variant: 'destructive' });
-    }
-    setSearching(false);
   };
 
   return (
     <div className="space-y-3">
-      {/* Address search */}
-      <div className="flex gap-2">
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
-          placeholder="Escribe la dirección y presiona Buscar..."
-          className="flex-1"
-        />
-        <Button type="button" variant="outline" className="gap-2 shrink-0" disabled={searching} onClick={handleSearch}>
-          <Search className="h-4 w-4" />
-          {searching ? 'Buscando…' : 'Buscar'}
-        </Button>
-      </div>
+      {/* Places Autocomplete */}
+      <Input
+        ref={inputRef}
+        placeholder="Busca tu gimnasio o dirección..."
+        className="w-full"
+        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+      />
 
       {/* Geolocation */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full gap-2"
-        onClick={handleGeolocate}
-        disabled={locating}
-      >
+      <Button type="button" variant="outline" className="w-full gap-2" onClick={handleGeolocate} disabled={locating}>
         <Locate className="h-4 w-4" />
         {locating ? 'Obteniendo ubicación…' : 'Usar mi ubicación actual'}
       </Button>
 
-      <div ref={containerRef} className="rounded-xl overflow-hidden border border-border h-64 z-0" />
+      {/* Google Map */}
+      {isLoaded ? (
+        <GoogleMap
+          mapContainerClassName="rounded-xl overflow-hidden border border-border h-64"
+          center={markerPos}
+          zoom={6}
+          onLoad={onMapLoad}
+          options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+        >
+          <Marker position={markerPos} draggable onDragEnd={handleDragEnd} />
+        </GoogleMap>
+      ) : (
+        <div className="h-64 rounded-xl border border-border flex items-center justify-center text-muted-foreground text-sm">
+          Cargando mapa…
+        </div>
+      )}
 
+      {/* Coordinates display */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs text-muted-foreground">Latitud</Label>
