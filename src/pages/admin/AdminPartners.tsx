@@ -3,14 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Partner } from '@/types/database';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState<(Partner & { checkin_count: number })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Partner | null>(null);
+  
 
   const fetchPartners = async () => {
     const { data } = await supabase.from('partners').select('*');
@@ -78,7 +79,9 @@ const AdminPartners = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button size="sm" variant="outline" onClick={() => setSelected(p)}>Detalles</Button>
+                    <Button size="sm" variant="outline" asChild className="gap-1.5">
+                      <Link to={`/admin/gym/${p.id}`}><Eye className="h-3.5 w-3.5" /> Ver</Link>
+                    </Button>
                     <Button size="sm" variant={p.is_active ? 'destructive' : 'default'} onClick={() => toggleActive(p)}>
                       {p.is_active ? 'Desactivar' : 'Activar'}
                     </Button>
@@ -90,22 +93,6 @@ const AdminPartners = () => {
         </Table>
       </div>
 
-      {/* Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selected?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <p><span className="font-medium">Categoría:</span> {selected?.category ?? '—'}</p>
-            <p><span className="font-medium">Dirección:</span> {selected?.address ?? '—'}</p>
-            <p><span className="font-medium">Descripción:</span> {selected?.description ?? '—'}</p>
-            <p><span className="font-medium">Capacidad diaria:</span> {selected?.daily_capacity_limit ?? 'Sin límite'}</p>
-            <p><span className="font-medium">Plan mínimo:</span> Nivel {selected?.min_plan_level ?? 1}</p>
-            <p><span className="font-medium">Registrado:</span> {selected?.created_at ? new Date(selected.created_at).toLocaleDateString() : '—'}</p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
