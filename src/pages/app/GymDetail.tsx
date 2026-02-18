@@ -282,12 +282,12 @@ const GymDetail = () => {
           <FavoriteButton partnerId={partner.id} size={24} className="ml-2" />
         </div>
 
-        <div className="flex items-center gap-2 mt-1.5">
-          {partner.category && (
-            <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-              {partner.category}
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {((partner as any).categories?.length ? (partner as any).categories : partner.category ? [partner.category] : []).map((cat: string) => (
+            <span key={cat} className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+              {cat}
             </span>
-          )}
+          ))}
           {needsUpgrade && <Badge variant="secondary" className="text-xs">Plan Superior</Badge>}
           {!isActive && (
             <Badge variant="outline" className="text-xs flex items-center gap-1">
@@ -364,14 +364,16 @@ const GymDetail = () => {
 
         {/* Right column */}
         <div className="space-y-6">
-          {/* Activities / Category */}
-          {partner.category && (
+          {/* Activities / Categories */}
+          {((partner as any).categories?.length || partner.category) && (
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-2">Actividades</h3>
               <div className="flex flex-wrap gap-2">
-                <span className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary bg-primary/5 font-medium">
-                  {partner.category}
-                </span>
+                {((partner as any).categories?.length ? (partner as any).categories : [partner.category]).map((cat: string) => (
+                  <span key={cat} className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary bg-primary/5 font-medium">
+                    {cat}
+                  </span>
+                ))}
               </div>
             </div>
           )}

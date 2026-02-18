@@ -86,7 +86,7 @@ const Explore = () => {
     if (error || !data) {
       const { data: fallback } = await supabase
         .from('partners')
-        .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
+        .select('id, name, description, address, category, categories, location, image_url, photos, admin_user_id, is_active, daily_capacity_limit, min_plan_level, created_at')
         .eq('is_active', true)
         .limit(20);
       setPartners((fallback as NearbyPartner[]) || []);
@@ -104,7 +104,7 @@ const Explore = () => {
           setLocationError('No pudimos obtener tu ubicación. Usa el panel de prueba para buscar manualmente.');
           const { data } = await supabase
             .from('partners')
-            .select('id, name, description, address, category, location, image_url, is_active, daily_capacity_limit, min_plan_level, created_at')
+            .select('id, name, description, address, category, categories, location, image_url, photos, admin_user_id, is_active, daily_capacity_limit, min_plan_level, created_at')
             .eq('is_active', true)
             .limit(20);
           setPartners((data as NearbyPartner[]) || []);
@@ -250,7 +250,9 @@ const Explore = () => {
                   )}
                   <div className="min-w-0">
                     <h3 className="font-bold truncate">{p.name}</h3>
-                    {p.category && <span className="text-xs text-muted-foreground">{p.category}</span>}
+                    {((p as any).categories?.length ? (p as any).categories : p.category ? [p.category] : []).map((cat: string) => (
+                      <Badge key={cat} variant="secondary" className="text-[10px] mr-1">{cat}</Badge>
+                    ))}
                     {p.address && <p className="text-sm text-muted-foreground mt-1 truncate">{p.address}</p>}
                     {p.distance_km != null && (
                       <span className="inline-block mt-2 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">

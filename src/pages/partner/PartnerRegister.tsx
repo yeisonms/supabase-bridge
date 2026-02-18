@@ -6,12 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, ImagePlus, X } from 'lucide-react';
 import LocationPicker from '@/components/LocationPicker';
-
-const CATEGORIES = ['Gym', 'Crossfit', 'Yoga', 'Pilates', 'Boxing', 'MMA', 'Funcional', 'Otro'];
+import MultiCategorySelect from '@/components/MultiCategorySelect';
 
 const PartnerRegister = () => {
   const navigate = useNavigate();
@@ -23,7 +21,7 @@ const PartnerRegister = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
   const [price, setPrice] = useState('');
   const [lat, setLat] = useState(4.5709);
   const [lng, setLng] = useState(-74.2973);
@@ -80,7 +78,7 @@ const PartnerRegister = () => {
       return;
     }
 
-    if (!gymName.trim() || !address.trim() || !category || !email.trim() || !phone.trim()) {
+    if (!gymName.trim() || !address.trim() || categories.length === 0 || !email.trim() || !phone.trim()) {
       toast({ title: 'Campos requeridos', description: 'Completa todos los campos obligatorios.', variant: 'destructive' });
       return;
     }
@@ -94,7 +92,7 @@ const PartnerRegister = () => {
     const { data: rpcResult, error } = await supabase.rpc('register_new_partner', {
       gym_name: gymName.trim(),
       gym_address: address.trim(),
-      gym_category: category,
+      gym_category: categories[0] || 'Gimnasio',
       gym_lat: parsedLat,
       gym_long: parsedLng,
       gym_price: parsedPrice,
@@ -124,6 +122,7 @@ const PartnerRegister = () => {
         if (description.trim()) updateData.description = description.trim();
         if (email.trim()) updateData.email = email.trim();
         if (phone.trim()) updateData.phone = phone.trim();
+        if (categories.length > 0) updateData.categories = categories;
         if (Object.keys(updateData).length > 0) {
           await supabase.from('partners').update(updateData).eq('id', newPartnerId);
         }
@@ -236,17 +235,8 @@ const PartnerRegister = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category">Categoría *</Label>
-            <Select value={category} onValueChange={setCategory} required>
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Selecciona una categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Categorías *</Label>
+            <MultiCategorySelect value={categories} onChange={setCategories} />
           </div>
 
           <div className="space-y-2">

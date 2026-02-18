@@ -8,6 +8,7 @@ import { Loader2, Upload, Trash2, Save, ImagePlus, ArrowLeft } from 'lucide-reac
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import LocationPicker from '@/components/LocationPicker';
+import MultiCategorySelect from '@/components/MultiCategorySelect';
 
 type PartnerData = {
   id: string;
@@ -40,13 +41,14 @@ const PartnerSettings = () => {
   const [lat, setLat] = useState(4.5709);
   const [lng, setLng] = useState(-74.2973);
   const [maxCapacity, setMaxCapacity] = useState<number>(20);
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       const { data, error } = await supabase
         .from('partners')
-        .select('id, name, address, description, phone, email, opening_hours, photos, location, daily_capacity_limit')
+        .select('id, name, address, description, phone, email, opening_hours, photos, location, daily_capacity_limit, categories, category')
         .eq('admin_user_id', user.id)
         .single();
 
@@ -61,6 +63,13 @@ const PartnerSettings = () => {
       setPhone((data as any).phone || '');
       setEmail((data as any).email || '');
       setMaxCapacity((data as any).daily_capacity_limit || 20);
+      // Load categories: prefer categories array, fallback to single category
+      const cats = (data as any).categories;
+      if (Array.isArray(cats) && cats.length > 0) {
+        setCategories(cats);
+      } else if ((data as any).category) {
+        setCategories([(data as any).category]);
+      }
       // Extract coordinates from PostGIS point
       const loc = (data as any).location;
       if (loc && typeof loc === 'object' && loc.coordinates) {
@@ -79,7 +88,7 @@ const PartnerSettings = () => {
     const locationPoint = `SRID=4326;POINT(${lng} ${lat})`;
     const { error } = await supabase
       .from('partners')
-      .update({ description, opening_hours: openingHours, phone, email, location: locationPoint, daily_capacity_limit: capacityValue } as any)
+      .update({ description, opening_hours: openingHours, phone, email, location: locationPoint, daily_capacity_limit: capacityValue, categories, category: categories[0] || null } as any)
       .eq('id', partner.id);
 
     setSaving(false);
@@ -308,6 +317,11 @@ const PartnerSettings = () => {
               placeholder="contacto@migym.com"
               type="email"
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-muted-foreground mb-1 block">Categorías</label>
+            <MultiCategorySelect value={categories} onChange={setCategories} />
           </div>
 
           <div>
