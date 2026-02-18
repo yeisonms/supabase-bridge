@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, MapPin, Users, Loader2, Clock, Mail, Phone,
-  Dumbbell, Calendar, ImageIcon, ShieldCheck, ShieldX,
+  Dumbbell, Calendar, ImageIcon, ShieldCheck, ShieldX, DollarSign, Save,
 } from 'lucide-react';
 
 const AdminGymDetail = () => {
@@ -16,6 +18,9 @@ const AdminGymDetail = () => {
   const [partner, setPartner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkinCount, setCheckinCount] = useState(0);
+  const [ratePerVisit, setRatePerVisit] = useState<string>('');
+  const [savingRate, setSavingRate] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!id) return;
@@ -29,6 +34,7 @@ const AdminGymDetail = () => {
       ]);
       setPartner(p);
       setCheckinCount(count || 0);
+      setRatePerVisit(p?.rate_per_visit != null ? String(p.rate_per_visit) : '');
       setLoading(false);
     };
     load();
@@ -54,6 +60,21 @@ const AdminGymDetail = () => {
   const photos: string[] = partner.photos?.length ? partner.photos : partner.image_url ? [partner.image_url] : [];
   const categories: string[] = partner.categories?.length ? partner.categories : partner.category ? [partner.category] : [];
   const coverPhoto = photos[0];
+
+  const handleSaveRate = async () => {
+    setSavingRate(true);
+    const value = ratePerVisit === '' ? null : Number(ratePerVisit);
+    const { error } = await supabase
+      .from('partners')
+      .update({ rate_per_visit: value } as any)
+      .eq('id', id);
+    setSavingRate(false);
+    if (error) {
+      toast({ title: 'Error', description: 'No se pudo guardar la tarifa.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Tarifa actualizada' });
+    }
+  };
 
   // Extract coordinates
   const loc = partner.location;
@@ -183,6 +204,33 @@ const AdminGymDetail = () => {
                   Registrado el {new Date(partner.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Rate per visit – admin only */}
+          <Card className="border-primary/30">
+            <CardContent className="pt-6 space-y-3">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <DollarSign className="h-4 w-4" /> Tarifa por Visita Acordada
+              </h3>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">COP</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={ratePerVisit}
+                    onChange={(e) => setRatePerVisit(e.target.value)}
+                    placeholder="Ej: 8000"
+                    className="pl-12"
+                  />
+                </div>
+                <Button size="sm" onClick={handleSaveRate} disabled={savingRate} className="gap-1.5">
+                  {savingRate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Guardar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Monto que se paga al gimnasio por cada visita validada. Solo visible para administradores.</p>
             </CardContent>
           </Card>
         </div>

@@ -42,6 +42,7 @@ export type Partner = {
   photos: string[] | null;
   is_active: boolean | null;
   admin_user_id: string | null;
+  rate_per_visit?: number | null;
   created_at: string;
   location: unknown | null;
 };
