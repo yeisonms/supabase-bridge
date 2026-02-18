@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -21,6 +22,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user && profile && !roleUpdated.current) {
@@ -79,13 +81,14 @@ const Register = () => {
       }
 
       if (data.user) {
-        // Update profiles table with extra fields
+        // Update profiles table with extra fields + terms timestamp
         await supabase
           .from('profiles')
           .update({
             first_name: firstName.trim(),
             last_name: lastName.trim(),
-          })
+            terms_accepted_at: new Date().toISOString(),
+          } as any)
           .eq('id', data.user.id);
 
         toast.success('¡Cuenta creada con éxito!');
@@ -172,7 +175,26 @@ const Register = () => {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={submitting}>
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="terms"
+              checked={termsAccepted}
+              onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="terms" className="text-sm text-muted-foreground font-normal leading-snug cursor-pointer">
+              Acepto los{' '}
+              <a href="/legal" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                Términos de Servicio
+              </a>{' '}
+              y la{' '}
+              <a href="/legal?tab=privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline">
+                Política de Privacidad
+              </a>
+            </Label>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={submitting || !termsAccepted}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Registrarse
           </Button>
