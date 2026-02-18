@@ -124,21 +124,19 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
   return (
     <div className="space-y-3">
       {/* Address search */}
-      <form
-        onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
-        className="flex gap-2"
-      >
+      <div className="flex gap-2">
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
           placeholder="Escribe la dirección y presiona Buscar..."
           className="flex-1"
         />
-        <Button type="submit" variant="outline" className="gap-2 shrink-0" disabled={searching}>
+        <Button type="button" variant="outline" className="gap-2 shrink-0" disabled={searching} onClick={handleSearch}>
           <Search className="h-4 w-4" />
           {searching ? 'Buscando…' : 'Buscar'}
         </Button>
-      </form>
+      </div>
 
       {/* Geolocation */}
       <Button
