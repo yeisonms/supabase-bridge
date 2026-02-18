@@ -26,6 +26,7 @@ import AdminPartners from "./pages/admin/AdminPartners";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminGymDetail from "./pages/admin/AdminGymDetail";
 import Checkout from "./pages/Checkout";
 import Favorites from "./pages/app/Favorites";
 import Welcome from "./pages/app/Welcome";
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="partners" element={<AdminPartners />} />
+              <Route path="gym/:id" element={<AdminGymDetail />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="plans" element={<AdminPlans />} />
               <Route path="reports" element={<AdminReports />} />
