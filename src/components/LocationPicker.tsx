@@ -46,7 +46,7 @@ export default function LocationPicker({ lat, lng, onChange }: Props) {
     if (!isLoaded || !inputRef.current || autocompleteRef.current) return;
 
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ['address', 'establishment'],
+      types: ['establishment'],
       fields: ['geometry', 'formatted_address', 'name'],
     });
 
