@@ -26,9 +26,13 @@ const PRESET_LOCATIONS = [
   { label: 'Popayán, Colombia', lat: 2.4541667, lng: -76.6091667 },
 ];
 
+const CATEGORY_OPTIONS = ['Gimnasio', 'CrossFit', 'Yoga', 'Pilates', 'Boxeo', 'Natación'];
+
 const Explore = () => {
   const [partners, setPartners] = useState<NearbyPartner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
   const [view, setView] = useState<'list' | 'map'>('list');
   const [locationError, setLocationError] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -143,6 +147,14 @@ const Explore = () => {
     return userAccessLevel >= minLevel ? 'accessible' : 'upgrade';
   };
 
+  // Filter partners by category + search text
+  const filteredPartners = partners.filter((p) => {
+    const cats: string[] = (p as any).categories?.length ? (p as any).categories : p.category ? [p.category] : [];
+    const matchesCategory = !selectedCategory || cats.includes(selectedCategory);
+    const matchesSearch = !searchText || p.name.toLowerCase().includes(searchText.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   const mapCenter = userLocation || DEFAULT_CENTER;
 
   return (
@@ -213,23 +225,57 @@ const Explore = () => {
         </div>
       )}
 
-      {locationError && (
-        <p className="text-sm text-muted-foreground bg-secondary rounded-lg p-3 mb-4">{locationError}</p>
-      )}
+      {/* Category filter bar */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            selectedCategory === null
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-transparent text-muted-foreground border-border hover:border-primary/50'
+          }`}
+        >
+          Todos
+        </button>
+        {CATEGORY_OPTIONS.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+              selectedCategory === cat
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-transparent text-muted-foreground border-border hover:border-primary/50'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Search bar */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar gimnasio..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          className="pl-9 h-9 text-sm"
+        />
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : partners.length === 0 ? (
+      ) : filteredPartners.length === 0 ? (
         <div className="text-center flex-1 flex flex-col items-center justify-center">
           <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-semibold mb-1">No hay gimnasios cerca</p>
-          <p className="text-muted-foreground text-sm">Intenta ampliar el radio de búsqueda</p>
+          <p className="text-lg font-semibold mb-1">No se encontraron resultados</p>
+          <p className="text-muted-foreground text-sm">Prueba con otra categoría o término de búsqueda</p>
         </div>
       ) : view === 'list' ? (
         <div className="space-y-3 overflow-y-auto flex-1">
-          {partners.map((p) => {
+          {filteredPartners.map((p) => {
             const status = getGymAccessStatus(p);
             return (
               <Link to={`/app/gym/${p.id}`} key={p.id} className="block">
@@ -283,7 +329,7 @@ const Explore = () => {
                 streetViewControl: false,
               }}
             >
-              {partners.map((p) => {
+              {filteredPartners.map((p) => {
                 const lat = (p as any).lat ?? (p.location as any)?.coordinates?.[1];
                 const lng = (p as any).long ?? (p.location as any)?.coordinates?.[0];
                 if (lat == null || lng == null) return null;
