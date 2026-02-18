@@ -39,13 +39,14 @@ const PartnerSettings = () => {
   const [email, setEmail] = useState('');
   const [lat, setLat] = useState(4.5709);
   const [lng, setLng] = useState(-74.2973);
+  const [maxCapacity, setMaxCapacity] = useState<number>(20);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       const { data, error } = await supabase
         .from('partners')
-        .select('id, name, address, description, phone, email, opening_hours, photos, location')
+        .select('id, name, address, description, phone, email, opening_hours, photos, location, daily_capacity_limit')
         .eq('admin_user_id', user.id)
         .single();
 
@@ -59,6 +60,7 @@ const PartnerSettings = () => {
       setOpeningHours((data as any).opening_hours || '');
       setPhone((data as any).phone || '');
       setEmail((data as any).email || '');
+      setMaxCapacity((data as any).daily_capacity_limit || 20);
       // Extract coordinates from PostGIS point
       const loc = (data as any).location;
       if (loc && typeof loc === 'object' && loc.coordinates) {
@@ -73,10 +75,11 @@ const PartnerSettings = () => {
   const handleSaveInfo = async () => {
     if (!partner) return;
     setSaving(true);
+    const capacityValue = Math.max(1, Math.round(maxCapacity));
     const locationPoint = `SRID=4326;POINT(${lng} ${lat})`;
     const { error } = await supabase
       .from('partners')
-      .update({ description, opening_hours: openingHours, phone, email, location: locationPoint } as any)
+      .update({ description, opening_hours: openingHours, phone, email, location: locationPoint, daily_capacity_limit: capacityValue } as any)
       .eq('id', partner.id);
 
     setSaving(false);
@@ -305,6 +308,18 @@ const PartnerSettings = () => {
               placeholder="contacto@migym.com"
               type="email"
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-muted-foreground mb-1 block">Aforo Máximo por Día</label>
+            <Input
+              type="number"
+              min={1}
+              value={maxCapacity}
+              onChange={(e) => setMaxCapacity(Number(e.target.value))}
+              placeholder="Ej: 30"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Número máximo de personas que pueden reservar por día.</p>
           </div>
 
           <div>
