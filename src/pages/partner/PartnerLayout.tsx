@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Landmark, ScanLine } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const PartnerLayout = () => {
   const { user, profile, loading } = useAuth();
@@ -32,6 +33,26 @@ const PartnerLayout = () => {
             <span className="text-gradient">Red</span>Fit <span className="text-sm font-normal text-muted-foreground">Partner</span>
           </Link>
           <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/partner/finances">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    <Landmark className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>Mis Ganancias</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/partner/scanner">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    <ScanLine className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>Escanear QR</TooltipContent>
+            </Tooltip>
             <Link to="/partner/settings">
               <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
                 <Settings className="h-4 w-4" />
