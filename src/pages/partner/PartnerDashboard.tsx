@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Loader2, AlertTriangle, DollarSign, TrendingUp, Clock, CheckCircle, CalendarClock, Info } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, DollarSign, Clock, CheckCircle, CalendarClock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 
@@ -31,7 +29,6 @@ const PartnerDashboard = () => {
   const [todayReserved, setTodayReserved] = useState(0);
   const [todayTotal, setTodayTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [monthlyData, setMonthlyData] = useState<{ day: string; visitas: number }[]>([]);
   const [monthConfirmedTotal, setMonthConfirmedTotal] = useState(0);
   const [todayCheckins, setTodayCheckins] = useState<(CheckinRow & { profile?: ProfileInfo })[]>([]);
 
@@ -81,17 +78,7 @@ const PartnerDashboard = () => {
       setTodayReserved(reserved);
       setTodayTotal(confirmed + reserved);
 
-      // Monthly chart — only confirmed
       const confirmedRows = monthConfirmedRes.data || [];
-      const days = eachDayOfInterval({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) });
-      const countsMap: Record<string, number> = {};
-      confirmedRows.forEach((row: any) => {
-        countsMap[row.checkin_date] = (countsMap[row.checkin_date] || 0) + 1;
-      });
-      setMonthlyData(days.map((d) => {
-        const key = format(d, 'yyyy-MM-dd');
-        return { day: format(d, 'd', { locale: es }), visitas: countsMap[key] || 0 };
-      }));
       setMonthConfirmedTotal(confirmedRows.length);
 
       // Profiles for today's checkins
@@ -196,47 +183,22 @@ const PartnerDashboard = () => {
         </div>
       </div>
 
-      {/* Revenue */}
-      <div className="bg-card rounded-2xl p-5 shadow-card border mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <DollarSign className="h-4 w-4 text-primary" />
-          <h2 className="font-bold text-sm">Ingresos Estimados (este mes)</h2>
+      {/* Quick revenue summary */}
+      <Link to="/partner/finances" className="block">
+        <div className="bg-card rounded-2xl p-5 shadow-card border mb-6 hover:border-primary/40 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <h2 className="font-bold text-sm">Ingresos del mes</h2>
+              </div>
+              <div className="text-2xl font-black">{formatCOP(estimatedRevenue)} COP</div>
+              <p className="text-xs text-muted-foreground mt-1">{monthConfirmedTotal} visitas confirmadas</p>
+            </div>
+            <span className="text-xs text-primary font-medium">Ver historial →</span>
+          </div>
         </div>
-        <div className="text-3xl font-black">{formatCOP(estimatedRevenue)} COP</div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {monthConfirmedTotal} check-ins confirmados × {formatCOP(ratePerVisit)}
-        </p>
-      </div>
-
-      {/* Settlement Alert */}
-      <Alert className="mb-6 border-primary/30 bg-primary/5">
-        <Info className="h-4 w-4 text-primary" />
-        <AlertDescription className="text-sm">
-          Este mes has recibido <span className="font-bold">{monthConfirmedTotal}</span> visitas válidas × <span className="font-bold">{formatCOP(ratePerVisit)}</span> = <span className="font-bold">{formatCOP(estimatedRevenue)}</span>, a liquidar el día 5 del próximo mes.
-        </AlertDescription>
-      </Alert>
-
-      {/* Monthly chart — only confirmed */}
-      <div className="bg-card rounded-2xl p-5 shadow-card border mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <h2 className="font-bold text-sm">Check-ins confirmados este mes</h2>
-        </div>
-        <div className="h-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '0.75rem', fontSize: 12 }}
-                labelFormatter={(label) => `Día ${label}`}
-              />
-              <Bar dataKey="visitas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      </Link>
 
       {/* Today's checkins table */}
       <div className="bg-card rounded-2xl p-5 shadow-card border mb-6">
