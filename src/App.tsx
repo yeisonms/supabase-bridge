@@ -31,6 +31,7 @@ import Checkout from "./pages/Checkout";
 import Favorites from "./pages/app/Favorites";
 import Welcome from "./pages/app/Welcome";
 import NotFound from "./pages/NotFound";
+import Legal from "./pages/Legal";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/plans" element={<Plans />} />
             <Route path="/partner-info" element={<PartnerInfo />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/legal" element={<Legal />} />
 
             {/* User portal */}
             <Route path="/app" element={<AppLayout />}>

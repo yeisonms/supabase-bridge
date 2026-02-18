@@ -359,7 +359,13 @@ const GymDetail = () => {
           )}
 
           {/* Checkin button */}
-          <div className="mt-6">{renderCheckinButton()}</div>
+          <div className="mt-6">
+            {renderCheckinButton()}
+            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+              Recuerda: RedFit no se hace responsable por lesiones ocurridas durante la práctica. Al reservar, aceptas seguir las normas de seguridad de <span className="font-semibold text-foreground">{partner.name}</span>.{' '}
+              <Link to="/legal" target="_blank" className="text-primary hover:underline">Ver términos</Link>
+            </p>
+          </div>
         </div>
 
         {/* Right column */}
