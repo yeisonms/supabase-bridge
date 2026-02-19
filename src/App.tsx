@@ -15,6 +15,7 @@ import Explore from "./pages/app/Explore";
 import GymDetail from "./pages/app/GymDetail";
 import Pass from "./pages/app/Pass";
 import Profile from "./pages/app/Profile";
+import Reservations from "./pages/app/Reservations";
 import PartnerLayout from "./pages/partner/PartnerLayout";
 import PartnerDashboard from "./pages/partner/PartnerDashboard";
 import PartnerScanner from "./pages/partner/PartnerScanner";
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="gym/:id" element={<GymDetail />} />
               <Route path="favorites" element={<Favorites />} />
               <Route path="pass" element={<Pass />} />
+              <Route path="reservations" element={<Reservations />} />
               <Route path="profile" element={<Profile />} />
               <Route path="welcome" element={<Welcome />} />
             </Route>
