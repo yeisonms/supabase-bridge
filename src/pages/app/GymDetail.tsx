@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -44,12 +44,11 @@ const GymDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [partner, setPartner] = useState<Partner | null>(null);
   const [loading, setLoading] = useState(true);
   const [todayCount, setTodayCount] = useState(0);
-  const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [dailyPassUsed, setDailyPassUsed] = useState(false);
 
   // Fetch user subscription + avatar
   const { data: userSub } = useQuery({
@@ -97,34 +96,51 @@ const GymDetail = () => {
     },
   });
 
+  // Checkin status query (invalidatable from Reservations page)
+  const { data: checkinStatus } = useQuery({
+    queryKey: ['checkin-status', id, user?.id],
+    enabled: !!id && !!user?.id,
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const [{ data: existing }, { data: dailyCheckins }] = await Promise.all([
+        supabase
+          .from('checkins')
+          .select('id')
+          .eq('partner_id', id!)
+          .eq('user_id', user!.id)
+          .eq('checkin_date', today)
+          .in('status', ['reserved', 'confirmed']),
+        supabase
+          .from('checkins')
+          .select('id')
+          .eq('user_id', user!.id)
+          .eq('checkin_date', today)
+          .in('status', ['reserved', 'confirmed']),
+      ]);
+      return {
+        checkedIn: (existing?.length || 0) > 0,
+        dailyPassUsed: (dailyCheckins?.length || 0) > 0 && (existing?.length || 0) === 0,
+      };
+    },
+  });
+
+  const checkedIn = checkinStatus?.checkedIn ?? false;
+  const dailyPassUsed = checkinStatus?.dailyPassUsed ?? false;
+
   useEffect(() => {
     if (!id) return;
     const today = new Date().toISOString().split('T')[0];
     const load = async () => {
-      const [{ data: p }, { count }, { data: existing }, { data: dailyCheckins }] = await Promise.all([
+      const [{ data: p }, { count }] = await Promise.all([
         supabase.from('partners').select('*').eq('id', id).single(),
         supabase
           .from('checkins')
           .select('*', { count: 'exact', head: true })
           .eq('partner_id', id)
           .eq('checkin_date', today),
-        supabase
-          .from('checkins')
-          .select('id')
-          .eq('partner_id', id)
-          .eq('user_id', user?.id || '')
-          .eq('checkin_date', today),
-        supabase
-          .from('checkins')
-          .select('id')
-          .eq('user_id', user?.id || '')
-          .eq('checkin_date', today)
-          .in('status', ['reserved', 'confirmed']),
       ]);
       setPartner(p as Partner);
       setTodayCount(count || 0);
-      setCheckedIn((existing?.length || 0) > 0);
-      setDailyPassUsed((dailyCheckins?.length || 0) > 0 && (existing?.length || 0) === 0);
       setLoading(false);
     };
     load();
@@ -152,18 +168,19 @@ const GymDetail = () => {
       if (error) {
         if (error.code === '23505') {
           toast.error('Solo se permite una reserva por día.');
-          setDailyPassUsed(true);
         } else {
           toast.error(error.message || 'No se pudo reservar. Intenta nuevamente.');
         }
+        queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
       } else {
         const result = data as any;
         if (result?.success === false) {
           toast.error(result?.message || 'No se pudo reservar.');
         } else {
-          setCheckedIn(true);
           setTodayCount((c) => c + 1);
           toast.success(result?.message || '¡Reserva exitosa!');
+          queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
+          queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
         }
       }
     } catch {

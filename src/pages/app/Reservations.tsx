@@ -54,17 +54,21 @@ const Reservations = () => {
 
   const handleCancel = async (checkinId: string) => {
     setCancellingId(checkinId);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('checkins')
       .update({ status: 'cancelled' })
       .eq('id', checkinId)
-      .eq('user_id', user!.id);
+      .eq('user_id', user!.id)
+      .select('id');
 
     if (error) {
       toast.error('No se pudo cancelar la reserva.');
+    } else if (!data || data.length === 0) {
+      toast.error('No se pudo cancelar la reserva. Permisos insuficientes.');
     } else {
       toast.success('Reserva cancelada exitosamente.');
-      queryClient.invalidateQueries({ queryKey: ['my-reservations', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
+      queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
     }
     setCancellingId(null);
   };
