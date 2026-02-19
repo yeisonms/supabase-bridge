@@ -144,7 +144,7 @@ const AdminReports = () => {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={DollarSign} label="MRR" value={`$${mrr.toLocaleString('es-CO')}`} sub="Ingresos recurrentes" color="text-emerald-600" />
+        <KpiCard icon={DollarSign} label="MRR" value={`$${mrr.toLocaleString('es-CO')} COP`} sub="Ingresos recurrentes" color="text-emerald-600" />
         <KpiCard icon={Users} label="Usuarios Activos" value={String(activeUsers)} sub="Suscripción activa" color="text-primary" />
         <KpiCard icon={CheckCircle} label="Visitas (mes)" value={String(monthVisits)} sub="Solo confirmadas" color="text-blue-600" />
         <KpiCard icon={Building2} label="Partners Activos" value={String(activePartners)} sub="Gimnasios aprobados" color="text-amber-600" />
