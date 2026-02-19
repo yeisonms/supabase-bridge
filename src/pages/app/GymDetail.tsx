@@ -49,6 +49,7 @@ const GymDetail = () => {
   const [todayCount, setTodayCount] = useState(0);
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [dailyPassUsed, setDailyPassUsed] = useState(false);
 
   // Fetch user subscription + avatar
   const { data: userSub } = useQuery({
@@ -98,24 +99,32 @@ const GymDetail = () => {
 
   useEffect(() => {
     if (!id) return;
+    const today = new Date().toISOString().split('T')[0];
     const load = async () => {
-      const [{ data: p }, { count }, { data: existing }] = await Promise.all([
+      const [{ data: p }, { count }, { data: existing }, { data: dailyCheckins }] = await Promise.all([
         supabase.from('partners').select('*').eq('id', id).single(),
         supabase
           .from('checkins')
           .select('*', { count: 'exact', head: true })
           .eq('partner_id', id)
-          .eq('checkin_date', new Date().toISOString().split('T')[0]),
+          .eq('checkin_date', today),
         supabase
           .from('checkins')
           .select('id')
           .eq('partner_id', id)
           .eq('user_id', user?.id || '')
-          .eq('checkin_date', new Date().toISOString().split('T')[0]),
+          .eq('checkin_date', today),
+        supabase
+          .from('checkins')
+          .select('id')
+          .eq('user_id', user?.id || '')
+          .eq('checkin_date', today)
+          .in('status', ['reserved', 'confirmed']),
       ]);
       setPartner(p as Partner);
       setTodayCount(count || 0);
       setCheckedIn((existing?.length || 0) > 0);
+      setDailyPassUsed((dailyCheckins?.length || 0) > 0 && (existing?.length || 0) === 0);
       setLoading(false);
     };
     load();
@@ -138,18 +147,27 @@ const GymDetail = () => {
     if (needsUpgrade) { toast.info('Necesitas un plan superior para este gimnasio'); navigate('/plans'); return; }
 
     setCheckingIn(true);
-    const { data, error } = await supabase.rpc('reserve_spot', { p_partner_id: id });
-    if (error) {
-      toast.error(error.message || 'No se pudo reservar. Intenta nuevamente.');
-    } else {
-      const result = data as any;
-      if (result?.success === false) {
-        toast.error(result?.message || 'No se pudo reservar.');
+    try {
+      const { data, error } = await supabase.rpc('reserve_spot', { p_partner_id: id });
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('Solo se permite una reserva por día.');
+          setDailyPassUsed(true);
+        } else {
+          toast.error(error.message || 'No se pudo reservar. Intenta nuevamente.');
+        }
       } else {
-        setCheckedIn(true);
-        setTodayCount((c) => c + 1);
-        toast.success(result?.message || '¡Reserva exitosa!');
+        const result = data as any;
+        if (result?.success === false) {
+          toast.error(result?.message || 'No se pudo reservar.');
+        } else {
+          setCheckedIn(true);
+          setTodayCount((c) => c + 1);
+          toast.success(result?.message || '¡Reserva exitosa!');
+        }
       }
+    } catch {
+      toast.error('Error inesperado al reservar.');
     }
     setCheckingIn(false);
   };
@@ -226,6 +244,20 @@ const GymDetail = () => {
         <Button variant="secondary" size="lg" className="w-full rounded-full py-6" onClick={() => navigate('/plans')}>
           <ArrowUpCircle className="h-5 w-5 mr-2" /> Mejorar Plan
         </Button>
+      );
+    }
+    if (dailyPassUsed) {
+      return (
+        <div className="space-y-3">
+          <Button disabled variant="secondary" className="w-full rounded-full py-6" size="lg">
+            <XCircle className="h-5 w-5 mr-2" /> Pase Diario Utilizado
+          </Button>
+          <div className="rounded-lg border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-3">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Ya tienes una reserva activa o has utilizado tu pase diario hoy. Vuelve mañana para seguir entrenando. 💪
+            </p>
+          </div>
+        </div>
       );
     }
     if (isFull) {
