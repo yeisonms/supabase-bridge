@@ -87,16 +87,13 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const formatRevenue = (value: number) => {
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
-    return `$${value.toLocaleString()}`;
-  };
+  const formatCOP = (value: number) =>
+    `$${value.toLocaleString('es-CO')} COP`;
 
   const financialCards = [
-    { label: 'Ingresos Brutos', value: formatRevenue(kpis.monthlyRevenue), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-    { label: 'Costos Operativos (Deuda Partners)', value: formatRevenue(kpis.operationalCosts), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
-    { label: 'Ganancia Neta (Profit)', value: formatRevenue(kpis.netProfit), icon: kpis.netProfit >= 0 ? TrendingUp : TrendingDown, color: kpis.netProfit >= 0 ? 'text-emerald-600' : 'text-destructive', bg: kpis.netProfit >= 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-red-50 dark:bg-red-950/30' },
+    { label: 'Ingresos Brutos', value: formatCOP(kpis.monthlyRevenue), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+    { label: 'Costos Operativos (Deuda Partners)', value: formatCOP(kpis.operationalCosts), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+    { label: 'Ganancia Neta (Profit)', value: formatCOP(kpis.netProfit), icon: kpis.netProfit >= 0 ? TrendingUp : TrendingDown, color: kpis.netProfit >= 0 ? 'text-emerald-600' : 'text-destructive', bg: kpis.netProfit >= 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-red-50 dark:bg-red-950/30' },
   ];
 
   const cards = [
