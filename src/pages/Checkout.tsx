@@ -4,25 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CreditCard, Lock, ArrowLeft, Check } from 'lucide-react';
+import { Loader2, CreditCard, Lock, ArrowLeft, Check, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import LandingNavbar from '@/components/landing/LandingNavbar';
+import { openWompiCheckout, generateUUID } from '@/hooks/use-wompi';
 import type { Plan } from '@/types/database';
+
+const WOMPI_PUBLIC_KEY = import.meta.env.VITE_WOMPI_PUBLIC_KEY as string;
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
   const planId = searchParams.get('planId');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
   const [processing, setProcessing] = useState(false);
 
   const { data: plan, isLoading } = useQuery({
@@ -46,64 +42,37 @@ const Checkout = () => {
     }
   }, [authLoading, user, navigate]);
 
-  const formatCardNumber = (v: string) => {
-    const digits = v.replace(/\D/g, '').slice(0, 16);
-    return digits.replace(/(.{4})/g, '$1 ').trim();
-  };
-
-  const formatExpiry = (v: string) => {
-    const digits = v.replace(/\D/g, '').slice(0, 4);
-    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
-    return digits;
-  };
-
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(price);
 
-  const isFormValid = cardNumber.replace(/\s/g, '').length === 16 && cardName.length > 2 && expiry.length === 5 && cvv.length >= 3;
-
   const handlePay = async () => {
-    if (!user || !plan) return;
+    if (!user || !plan || !WOMPI_PUBLIC_KEY) return;
     setProcessing(true);
 
-    // Simulate 2-second payment processing
-    await new Promise((r) => setTimeout(r, 2000));
+    const reference = generateUUID();
+    const amountInCents = Math.round(plan.price * 100);
 
-    const now = new Date();
-    const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 30);
-
-    // Update profile with subscription info
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        current_plan_id: plan.id,
-        subscription_status: 'active',
-        plan_start_date: now.toISOString(),
-        plan_end_date: endDate.toISOString(),
-      })
-      .eq('id', user.id);
-
-    if (profileError) {
-      toast.error('Error al activar tu plan: ' + profileError.message);
+    try {
+      await openWompiCheckout({
+        currency: 'COP',
+        amountInCents,
+        reference,
+        publicKey: WOMPI_PUBLIC_KEY,
+        redirectUrl: `${window.location.origin}/app/welcome`,
+        onSuccess: () => {
+          toast.success('¡Pago en proceso de confirmación! Tu plan estará activo en breve.');
+          navigate('/app/welcome');
+        },
+        onDeclined: () => {
+          toast.error('El pago fue rechazado. Por favor intenta con otra tarjeta.');
+        },
+      });
+    } catch (err) {
+      console.error('Wompi error:', err);
+      toast.error('No se pudo abrir la pasarela de pago. Intenta de nuevo.');
+    } finally {
       setProcessing(false);
-      return;
     }
-
-    // Record payment
-    const { error: paymentError } = await supabase.from('payments').insert({
-      user_id: user.id,
-      plan_id: plan.id,
-      amount: plan.price,
-      status: 'completed',
-    });
-
-    if (paymentError) {
-      console.warn('Payment record failed:', paymentError.message);
-    }
-
-    setProcessing(false);
-    navigate('/app/welcome');
   };
 
   if (!planId) {
@@ -135,7 +104,7 @@ const Checkout = () => {
               {/* Order Summary */}
               <Card className="md:col-span-2 h-fit">
                 <CardHeader>
-                  <CardTitle className="text-lg">Resumen</CardTitle>
+                  <CardTitle className="text-lg">Resumen del pedido</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -159,77 +128,82 @@ const Checkout = () => {
                 </CardContent>
               </Card>
 
-              {/* Payment Form */}
+              {/* Wompi Payment Panel */}
               <Card className="md:col-span-3">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" /> Datos de pago
+                    <CreditCard className="h-5 w-5" /> Pago seguro con Wompi
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="cardName">Nombre en la tarjeta</Label>
-                    <Input
-                      id="cardName"
-                      placeholder="Juan Pérez"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
-                      disabled={processing}
-                    />
+                <CardContent className="space-y-6">
+                  {/* Trust badges */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { icon: ShieldCheck, label: 'Pago 100% seguro', sub: 'Cifrado SSL/TLS' },
+                      { icon: Lock, label: 'Datos protegidos', sub: 'PCI DSS Nivel 1' },
+                    ].map((badge) => (
+                      <div key={badge.label} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+                        <badge.icon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">{badge.label}</p>
+                          <p className="text-xs text-muted-foreground">{badge.sub}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+
+                  {/* Accepted payment methods */}
                   <div className="space-y-2">
-                    <Label htmlFor="cardNumber">Número de tarjeta</Label>
-                    <Input
-                      id="cardNumber"
-                      placeholder="4242 4242 4242 4242"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                      disabled={processing}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="expiry">Vencimiento</Label>
-                      <Input
-                        id="expiry"
-                        placeholder="MM/AA"
-                        value={expiry}
-                        onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                        disabled={processing}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cvv">CVV</Label>
-                      <Input
-                        id="cvv"
-                        placeholder="123"
-                        value={cvv}
-                        onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                        disabled={processing}
-                        type="password"
-                      />
+                    <p className="text-sm font-medium text-foreground">Métodos de pago aceptados</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['Visa', 'Mastercard', 'PSE', 'Nequi', 'Daviplata'].map((method) => (
+                        <span
+                          key={method}
+                          className="px-3 py-1 rounded-full border border-border text-xs font-medium text-muted-foreground bg-background"
+                        >
+                          {method}
+                        </span>
+                      ))}
                     </div>
                   </div>
 
-                  <Button
-                    className="w-full text-base font-bold"
-                    size="lg"
-                    onClick={handlePay}
-                    disabled={!isFormValid || processing}
-                  >
-                    {processing ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                        Procesando pago…
-                      </>
-                    ) : (
-                      <>Pagar {formatPrice(plan.price)}</>
+                  <Separator />
+
+                  <div className="text-center space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Al hacer clic en el botón, se abrirá el portal seguro de Wompi para completar tu pago de{' '}
+                      <span className="font-bold text-foreground">{formatPrice(plan.price)}</span>.
+                    </p>
+
+                    <Button
+                      className="w-full text-base font-bold"
+                      size="lg"
+                      onClick={handlePay}
+                      disabled={processing || !WOMPI_PUBLIC_KEY}
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                          Abriendo pasarela…
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="h-5 w-5 mr-2" />
+                          Suscribirse Ahora · {formatPrice(plan.price)}
+                        </>
+                      )}
+                    </Button>
+
+                    {!WOMPI_PUBLIC_KEY && (
+                      <p className="text-xs text-destructive">
+                        Clave pública de Wompi no configurada. Contacta al administrador.
+                      </p>
                     )}
-                  </Button>
 
-                  <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
-                    <Lock className="h-3 w-3" /> Pago simulado · Tus datos no se almacenan
-                  </p>
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                      <Lock className="h-3 w-3" /> Serás redirigido al portal seguro de Wompi
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
