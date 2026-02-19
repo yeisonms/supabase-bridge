@@ -1,12 +1,12 @@
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
-import { Home, Compass, Heart, Ticket, UserCircle } from 'lucide-react';
+import { Home, Compass, Heart, CalendarDays, UserCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { to: '/app', icon: Home, label: 'Inicio', end: true },
   { to: '/app/explore', icon: Compass, label: 'Explorar' },
   { to: '/app/favorites', icon: Heart, label: 'Favoritos' },
-  { to: '/app/pass', icon: Ticket, label: 'Mi Pase' },
+  { to: '/app/reservations', icon: CalendarDays, label: 'Reservas' },
   { to: '/app/profile', icon: UserCircle, label: 'Perfil' },
 ];
 
