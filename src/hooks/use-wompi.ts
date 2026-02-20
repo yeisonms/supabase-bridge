@@ -1,11 +1,62 @@
 /**
- * Hook to dynamically load the Wompi Widget script and open the checkout modal.
+ * Wompi checkout helpers — fully imperative, no pre-loading.
+ * All steps (signature → script → widget) happen sequentially on user click.
  */
 
-const WOMPI_SCRIPT_URL = 'https://checkout.wompi.co/widget.js';
+export const WOMPI_PUBLIC_KEY = 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2';
+export const WOMPI_SCRIPT_URL = 'https://checkout.wompi.co/widget.js';
 
-// Llave pública de Wompi (publicable, segura para el frontend)
-const WOMPI_PUBLIC_KEY = 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2';
+/** Step 1 — Get integrity signature from secure backend */
+export async function fetchWompiSignature(
+  reference: string,
+  amountInCents: number,
+  currency: 'COP',
+): Promise<string> {
+  const res = await fetch('/api/wompi-signature', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reference, amountInCents, currency }),
+  });
+
+  if (!res.ok) {
+    throw new Error('No se pudo generar la firma de integridad');
+  }
+
+  const { signature } = await res.json();
+
+  if (!signature) {
+    throw new Error('La firma de integridad no fue recibida del servidor');
+  }
+
+  return signature as string;
+}
+
+/** Step 2 — Inject Wompi script only if not already present */
+export function loadWompiScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Already loaded — resolve immediately
+    if (typeof (window as any).WidgetCheckout !== 'undefined') {
+      resolve();
+      return;
+    }
+
+    // Script tag already injected but not yet loaded — wait for it
+    const existing = document.querySelector(`script[src="${WOMPI_SCRIPT_URL}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('Error cargando script de Wompi')));
+      return;
+    }
+
+    // Inject fresh script tag
+    const script = document.createElement('script');
+    script.src = WOMPI_SCRIPT_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Error cargando script de Wompi'));
+    document.body.appendChild(script);
+  });
+}
 
 export interface WompiCheckoutOptions {
   currency: 'COP';
@@ -16,64 +67,31 @@ export interface WompiCheckoutOptions {
   onDeclined?: () => void;
 }
 
-function loadWompiScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // If already loaded, resolve immediately
-    if (document.querySelector(`script[src="${WOMPI_SCRIPT_URL}"]`)) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = WOMPI_SCRIPT_URL;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Wompi script'));
-    document.body.appendChild(script);
-  });
-}
-
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-export { generateUUID };
-
+/**
+ * Full sequential flow:
+ * 1. Fetch signature
+ * 2. Load script
+ * 3. Open widget
+ */
 export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<void> {
-  // 1. Fetch integrity signature from secure backend endpoint
-  const sigResponse = await fetch('/api/wompi-signature', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      reference: options.reference,
-      amountInCents: options.amountInCents,
-      currency: options.currency,
-    }),
-  });
+  // Step A — fetch signature first (no script loaded yet, no race condition)
+  const signature = await fetchWompiSignature(
+    options.reference,
+    options.amountInCents,
+    options.currency,
+  );
 
-  if (!sigResponse.ok) {
-    throw new Error('No se pudo generar la firma de integridad');
-  }
-
-  const { signature } = await sigResponse.json();
-
-  if (!signature) {
-    throw new Error('La firma de integridad no fue recibida del servidor');
-  }
-
-  // 2. Load Wompi script after obtaining signature
+  // Step B — inject / wait for script
   await loadWompiScript();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Step C — widget is now guaranteed to exist
   const WidgetCheckout = (window as any).WidgetCheckout;
 
   if (!WidgetCheckout) {
-    throw new Error('Wompi WidgetCheckout not available after script load');
+    throw new Error('Wompi WidgetCheckout no disponible después de cargar el script');
   }
 
+  // Step D — initialise with hardcoded public key (no env variable)
   const checkout = new WidgetCheckout({
     currency: options.currency,
     amountInCents: options.amountInCents,
@@ -83,6 +101,7 @@ export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<
     signature: { integrity: signature },
   });
 
+  // Step E — open and handle result
   checkout.open((result: { transaction: { status: string } }) => {
     const status = result?.transaction?.status;
     if (status === 'APPROVED') {
@@ -90,6 +109,6 @@ export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<
     } else if (status === 'DECLINED') {
       options.onDeclined?.();
     }
-    // VOIDED / ERROR / PENDING handled silently; webhook does the real work
+    // VOIDED / ERROR / PENDING → webhook handles the real activation
   });
 }
