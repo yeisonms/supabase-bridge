@@ -184,7 +184,7 @@ const Checkout = () => {
                       {processing ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Abriendo pasarela…
+                          Generando pago seguro…
                         </>
                       ) : (
                         <>
