@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,20 +6,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CreditCard, Lock, ArrowLeft, Check, ShieldCheck } from 'lucide-react';
+import { Loader2, Lock, ArrowLeft, Check, ShieldCheck, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import LandingNavbar from '@/components/landing/LandingNavbar';
-import { openWompiCheckout } from '@/hooks/use-wompi';
+import { WompiButton } from '@/components/WompiButton';
 import type { Plan } from '@/types/database';
-
-
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
   const planId = searchParams.get('planId');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [processing, setProcessing] = useState(false);
 
   const { data: plan, isLoading } = useQuery({
     queryKey: ['plan', planId],
@@ -44,40 +41,6 @@ const Checkout = () => {
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(price);
-
-  const handlePay = async () => {
-    if (!user || !plan) return;
-
-    // Paso A — activar estado de carga
-    setProcessing(true);
-
-    try {
-      // Paso B — generar reference e ir al backend por la firma
-      const reference = `${user.id}_${Date.now()}`;
-      const amountInCents = Math.round(plan.price * 100);
-
-      // Paso C, D y E — carga secuencial del script e inicialización del widget
-      await openWompiCheckout({
-        currency: 'COP',
-        amountInCents,
-        reference,
-        redirectUrl: `${window.location.origin}/app/welcome`,
-        onSuccess: () => {
-          toast.success('¡Pago en proceso de confirmación! Tu plan estará activo en breve.');
-          navigate('/app/welcome');
-        },
-        onDeclined: () => {
-          toast.error('El pago fue rechazado. Por favor intenta con otra tarjeta.');
-        },
-      });
-    } catch (err) {
-      console.error('[Wompi] Error en el flujo de pago:', err);
-      toast.error('No se pudo abrir la pasarela de pago. Intenta de nuevo.');
-    } finally {
-      // Paso F — desactivar estado de carga
-      setProcessing(false);
-    }
-  };
 
   if (!planId) {
     return (
@@ -179,24 +142,15 @@ const Checkout = () => {
                       <span className="font-bold text-foreground">{formatPrice(plan.price)}</span>.
                     </p>
 
-                    <Button
-                      className="w-full text-base font-bold"
-                      size="lg"
-                      onClick={handlePay}
-                      disabled={processing}
-                    >
-                      {processing ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Conectando con el banco…
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="h-5 w-5 mr-2" />
-                          Suscribirse Ahora · {formatPrice(plan.price)}
-                        </>
-                      )}
-                    </Button>
+                    {user && (
+                      <WompiButton
+                        amountInCents={Math.round(plan.price * 100)}
+                        reference={`${user.id}_${Date.now()}`}
+                        label={`Suscribirse Ahora · ${formatPrice(plan.price)}`}
+                        onSuccess={() => navigate('/app/welcome')}
+                        onDeclined={() => toast.error('El pago fue rechazado. Intenta con otra tarjeta.')}
+                      />
+                    )}
 
                     <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
                       <Lock className="h-3 w-3" /> Serás redirigido al portal seguro de Wompi
