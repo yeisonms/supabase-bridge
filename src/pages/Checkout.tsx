@@ -48,13 +48,6 @@ const Checkout = () => {
   const handlePay = async () => {
     if (!user || !plan) return;
 
-    const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY as string;
-    if (!publicKey) {
-      console.error('[Wompi] Falta la llave pública: VITE_WOMPI_PUBLIC_KEY no está definida');
-      toast.error('Error de configuración de pagos. Contacta al administrador.');
-      return;
-    }
-
     setProcessing(true);
 
     const reference = `${user.id}_${Date.now()}`;
@@ -65,7 +58,6 @@ const Checkout = () => {
         currency: 'COP',
         amountInCents,
         reference,
-        publicKey: publicKey,
         redirectUrl: `${window.location.origin}/app/welcome`,
         onSuccess: () => {
           toast.success('¡Pago en proceso de confirmación! Tu plan estará activo en breve.');

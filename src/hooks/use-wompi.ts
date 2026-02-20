@@ -4,11 +4,13 @@
 
 const WOMPI_SCRIPT_URL = 'https://checkout.wompi.co/widget.js';
 
+// Llave pública de Wompi (publicable, segura para el frontend)
+const WOMPI_PUBLIC_KEY = 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2';
+
 export interface WompiCheckoutOptions {
   currency: 'COP';
   amountInCents: number;
   reference: string;
-  publicKey: string;
   redirectUrl?: string;
   onSuccess?: () => void;
   onDeclined?: () => void;
@@ -41,11 +43,6 @@ function generateUUID(): string {
 export { generateUUID };
 
 export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<void> {
-  // 0. Fail-fast: validate public key before any network call
-  if (!options.publicKey) {
-    throw new Error('La llave pública de Wompi (VITE_WOMPI_PUBLIC_KEY) no está configurada');
-  }
-
   // 1. Fetch integrity signature from secure backend endpoint
   const sigResponse = await fetch('/api/wompi-signature', {
     method: 'POST',
@@ -81,7 +78,7 @@ export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<
     currency: options.currency,
     amountInCents: options.amountInCents,
     reference: options.reference,
-    publicKey: options.publicKey,
+    publicKey: WOMPI_PUBLIC_KEY,
     redirectUrl: options.redirectUrl,
     signature: { integrity: signature },
   });
