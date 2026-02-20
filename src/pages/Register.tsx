@@ -81,15 +81,15 @@ const Register = () => {
       }
 
       if (data.user) {
-        // Update profiles table with extra fields + terms timestamp
+        // Upsert profile with names + terms timestamp (upsert handles race condition with DB trigger)
         await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: data.user.id,
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             terms_accepted_at: new Date().toISOString(),
-          } as any)
-          .eq('id', data.user.id);
+          } as any, { onConflict: 'id' });
 
         toast.success('¡Cuenta creada con éxito!');
       }
