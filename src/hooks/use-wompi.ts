@@ -12,23 +12,29 @@ export async function fetchWompiSignature(
   amountInCents: number,
   currency: 'COP',
 ): Promise<string> {
+  const payload = { reference, amountInCents, currency };
+  console.log('[Wompi] Solicitando firma con payload:', payload);
+
   const res = await fetch('/api/wompi-signature', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reference, amountInCents, currency }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
-    throw new Error('No se pudo generar la firma de integridad');
+    const body = await res.text().catch(() => '');
+    console.error('[Wompi] Error del backend de firma:', res.status, body);
+    throw new Error(`No se pudo generar la firma de integridad (${res.status})`);
   }
 
-  const { signature } = await res.json();
+  const data = await res.json();
+  console.log('[Wompi] Firma recibida:', data);
 
-  if (!signature) {
+  if (!data.signature) {
     throw new Error('La firma de integridad no fue recibida del servidor');
   }
 
-  return signature as string;
+  return data.signature as string;
 }
 
 /** Step 2 — Inject Wompi script only if not already present */
@@ -92,6 +98,13 @@ export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<
   }
 
   // Step D — initialise with hardcoded public key (no env variable)
+  console.log('[Wompi] Inicializando widget con:', {
+    currency: options.currency,
+    amountInCents: options.amountInCents,
+    reference: options.reference,
+    publicKey: WOMPI_PUBLIC_KEY,
+    signature,
+  });
   const checkout = new WidgetCheckout({
     currency: options.currency,
     amountInCents: options.amountInCents,
