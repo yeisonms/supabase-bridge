@@ -12,7 +12,7 @@ import LandingNavbar from '@/components/landing/LandingNavbar';
 import { openWompiCheckout } from '@/hooks/use-wompi';
 import type { Plan } from '@/types/database';
 
-const WOMPI_PUBLIC_KEY = import.meta.env.VITE_WOMPI_PUBLIC_KEY as string;
+
 
 const Checkout = () => {
   const [searchParams] = useSearchParams();
@@ -46,7 +46,15 @@ const Checkout = () => {
     new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(price);
 
   const handlePay = async () => {
-    if (!user || !plan || !WOMPI_PUBLIC_KEY) return;
+    if (!user || !plan) return;
+
+    const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY as string;
+    if (!publicKey) {
+      console.error('[Wompi] Falta la llave pública: VITE_WOMPI_PUBLIC_KEY no está definida');
+      toast.error('Error de configuración de pagos. Contacta al administrador.');
+      return;
+    }
+
     setProcessing(true);
 
     const reference = `${user.id}_${Date.now()}`;
@@ -57,7 +65,7 @@ const Checkout = () => {
         currency: 'COP',
         amountInCents,
         reference,
-        publicKey: WOMPI_PUBLIC_KEY,
+        publicKey: publicKey,
         redirectUrl: `${window.location.origin}/app/welcome`,
         onSuccess: () => {
           toast.success('¡Pago en proceso de confirmación! Tu plan estará activo en breve.');
@@ -179,7 +187,7 @@ const Checkout = () => {
                       className="w-full text-base font-bold"
                       size="lg"
                       onClick={handlePay}
-                      disabled={processing || !WOMPI_PUBLIC_KEY}
+                      disabled={processing}
                     >
                       {processing ? (
                         <>
@@ -193,12 +201,6 @@ const Checkout = () => {
                         </>
                       )}
                     </Button>
-
-                    {!WOMPI_PUBLIC_KEY && (
-                      <p className="text-xs text-destructive">
-                        Clave pública de Wompi no configurada. Contacta al administrador.
-                      </p>
-                    )}
 
                     <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
                       <Lock className="h-3 w-3" /> Serás redirigido al portal seguro de Wompi
