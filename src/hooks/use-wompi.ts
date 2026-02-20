@@ -41,6 +41,11 @@ function generateUUID(): string {
 export { generateUUID };
 
 export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<void> {
+  // 0. Fail-fast: validate public key before any network call
+  if (!options.publicKey) {
+    throw new Error('La llave pública de Wompi (VITE_WOMPI_PUBLIC_KEY) no está configurada');
+  }
+
   // 1. Fetch integrity signature from secure backend endpoint
   const sigResponse = await fetch('/api/wompi-signature', {
     method: 'POST',
