@@ -1,92 +1,52 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, CreditCard } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface WompiButtonProps {
   amountInCents: number;
   reference: string;
   label?: string;
-  onSuccess?: () => void;
-  onDeclined?: () => void;
 }
 
-export const WompiButton = ({
-  amountInCents,
-  reference,
-  label,
-  onSuccess,
-  onDeclined,
-}: WompiButtonProps) => {
+export const WompiButton = ({ amountInCents, reference, label }: WompiButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePayment = async () => {
-    if (isLoading) return; // Bloqueo contra doble clic
+    if (isLoading) return;
     setIsLoading(true);
 
     try {
-      // 1. Obtener la Firma de Integridad (Backend)
+      const publicKey = 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2';
+      const currency = 'COP';
+
+      // 1. Obtener firma del backend
       const res = await fetch('/api/wompi-signature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference, amountInCents, currency: 'COP' }),
+        body: JSON.stringify({ reference, amountInCents, currency }),
       });
 
       const data = await res.json();
 
-      if (!data.signature) {
-        throw new Error('No se pudo generar la firma de seguridad');
-      }
+      if (!data.signature) throw new Error('Error de firma');
 
-      // 2. Función aislada para abrir el widget (datos siempre frescos)
-      const abrirWompi = (firma: string) => {
-        setIsLoading(false);
-        const checkout = new (window as any).WidgetCheckout({
-          currency: 'COP',
-          amountInCents: amountInCents,
-          reference: reference,
-          publicKey: 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2',
-          signature: { integrity: firma },
-        });
+      // 2. Construir la URL de Checkout de Wompi
+      const wompiUrl = new URL('https://checkout.wompi.co/p/');
+      wompiUrl.searchParams.append('public-key', publicKey);
+      wompiUrl.searchParams.append('currency', currency);
+      wompiUrl.searchParams.append('amount-in-cents', amountInCents.toString());
+      wompiUrl.searchParams.append('reference', reference);
+      wompiUrl.searchParams.append('signature:integrity', data.signature);
+      wompiUrl.searchParams.append('redirect-url', window.location.origin + '/app/welcome');
 
-        checkout.open(function (result: { transaction: { status: string } }) {
-          const status = result?.transaction?.status;
-          if (status === 'APPROVED') {
-            toast.success('¡Pago en proceso de confirmación! Tu plan estará activo en breve.');
-            onSuccess?.();
-          } else {
-            toast.error('El pago no pudo ser procesado. Intenta de nuevo.');
-            onDeclined?.();
-          }
-        });
-      };
+      // 3. Redirigir al usuario a Wompi
+      window.location.href = wompiUrl.toString();
 
-      // 3. Reutilizar script si ya existe en el DOM
-      const existingScript = document.getElementById('wompi-widget-script');
-      if (existingScript && (window as any).WidgetCheckout) {
-        abrirWompi(data.signature);
-        return;
-      }
-
-      // 4. Eliminar script huérfano sin WidgetCheckout cargado y crear uno nuevo
-      if (existingScript) existingScript.remove();
-
-      const script = document.createElement('script');
-      script.id = 'wompi-widget-script';
-      script.src = 'https://checkout.wompi.co/widget.js';
-
-      script.onload = () => abrirWompi(data.signature);
-
-      script.onerror = () => {
-        setIsLoading(false);
-        toast.error('No se pudo cargar la pasarela de pagos.');
-      };
-
-      document.body.appendChild(script);
     } catch (error) {
-      console.error('[WompiButton] Error:', error);
+      console.error('Error procesando pago:', error);
+      toast.error('No se pudo iniciar el pago. Intenta de nuevo.');
       setIsLoading(false);
-      toast.error('Error al iniciar el pago. Intenta de nuevo.');
     }
   };
 
@@ -100,12 +60,12 @@ export const WompiButton = ({
       {isLoading ? (
         <>
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          Conectando con el banco…
+          Preparando pago seguro…
         </>
       ) : (
         <>
-          <CreditCard className="h-5 w-5 mr-2" />
-          {label ?? 'Suscribirse Ahora'}
+          <ExternalLink className="h-5 w-5 mr-2" />
+          {label ?? 'Ir a Pagar de Forma Segura'}
         </>
       )}
     </Button>
