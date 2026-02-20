@@ -40,20 +40,22 @@ export default async function handler(req: any, res: any) {
 
     // 3. Procesar solo si la transacción fue APROBADA
     if (event === "transaction.updated" && data.status === "APPROVED") {
-      // Separamos la referencia por el guion bajo y tomamos la primera parte (el ID del usuario)
+      // Magia aquí: Extraemos el usuario y el plan de la referencia
+      // Formato esperado: USERID_PLANID_TIMESTAMP
       const referenceParts = data.reference.split("_");
       const user_id = referenceParts[0];
+      const plan_id = referenceParts[1]; // <-- ¡Aquí capturamos el ID del plan!
 
-      // Calcular la fecha de inicio (hoy) y fin de suscripción (30 días)
       const startDate = new Date();
       const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 30);
+      endDate.setDate(endDate.getDate() + 30); // Asumiendo planes de 30 días
 
-      // 4. Actualizar el perfil del usuario con las fechas correctas
+      // 4. Actualizar el perfil del usuario (¡Ahora con current_plan_id!)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           subscription_status: "active",
+          current_plan_id: plan_id,
           plan_start_date: startDate.toISOString(),
           plan_end_date: endDate.toISOString(),
         })
@@ -61,18 +63,19 @@ export default async function handler(req: any, res: any) {
 
       if (profileError) throw profileError;
 
-      // 5. Registrar el pago en el historial
+      // 5. Registrar el pago en el historial (¡Ahora con plan_id!)
       const { error: paymentError } = await supabase.from("payments").insert({
         user_id: user_id,
+        plan_id: plan_id,
         wompi_transaction_id: data.id,
-        amount: data.amount_in_cents / 100, // Convertir centavos a pesos
+        amount: data.amount_in_cents / 100,
         status: data.status,
         payment_method: data.payment_method_type,
       });
 
       if (paymentError) throw paymentError;
 
-      console.log(`Pago aprobado y procesado para el usuario: ${user_id}`);
+      console.log(`Pago procesado: Usuario ${user_id} - Plan ${plan_id}`);
     }
 
     // Siempre responder 200 OK a Wompi para que no reintente enviar el evento
