@@ -48,12 +48,15 @@ const Checkout = () => {
   const handlePay = async () => {
     if (!user || !plan) return;
 
+    // Paso A — activar estado de carga
     setProcessing(true);
 
-    const reference = `${user.id}_${Date.now()}`;
-    const amountInCents = Math.round(plan.price * 100);
-
     try {
+      // Paso B — generar reference e ir al backend por la firma
+      const reference = `${user.id}_${Date.now()}`;
+      const amountInCents = Math.round(plan.price * 100);
+
+      // Paso C, D y E — carga secuencial del script e inicialización del widget
       await openWompiCheckout({
         currency: 'COP',
         amountInCents,
@@ -68,9 +71,10 @@ const Checkout = () => {
         },
       });
     } catch (err) {
-      console.error('Wompi error:', err);
+      console.error('[Wompi] Error en el flujo de pago:', err);
       toast.error('No se pudo abrir la pasarela de pago. Intenta de nuevo.');
     } finally {
+      // Paso F — desactivar estado de carga
       setProcessing(false);
     }
   };
@@ -184,7 +188,7 @@ const Checkout = () => {
                       {processing ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Generando pago seguro…
+                          Conectando con el banco…
                         </>
                       ) : (
                         <>
