@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, CreditCard, Lock, ArrowLeft, Check, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import LandingNavbar from '@/components/landing/LandingNavbar';
-import { openWompiCheckout, generateUUID } from '@/hooks/use-wompi';
+import { openWompiCheckout } from '@/hooks/use-wompi';
 import type { Plan } from '@/types/database';
 
 const WOMPI_PUBLIC_KEY = import.meta.env.VITE_WOMPI_PUBLIC_KEY as string;
@@ -49,7 +49,7 @@ const Checkout = () => {
     if (!user || !plan || !WOMPI_PUBLIC_KEY) return;
     setProcessing(true);
 
-    const reference = generateUUID();
+    const reference = `${user.id}_${Date.now()}`;
     const amountInCents = Math.round(plan.price * 100);
 
     try {
