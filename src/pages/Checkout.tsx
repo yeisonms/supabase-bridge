@@ -145,7 +145,7 @@ const Checkout = () => {
                     {user && (
                       <WompiButton
                         amountInCents={Math.round(plan.price * 100)}
-                        reference={`${user.id}_${Date.now()}`}
+                        reference={`${user.id}_${plan.id}_${Date.now()}`}
                         label={`Ir a Pagar de Forma Segura · ${formatPrice(plan.price)}`}
                       />
                     )}
