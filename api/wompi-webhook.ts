@@ -44,16 +44,18 @@ export default async function handler(req: any, res: any) {
       const referenceParts = data.reference.split("_");
       const user_id = referenceParts[0];
 
-      // Calcular la nueva fecha de fin de suscripción (30 días a partir de hoy)
+      // Calcular la fecha de inicio (hoy) y fin de suscripción (30 días)
+      const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + 30);
 
-      // 4. Actualizar el perfil del usuario
+      // 4. Actualizar el perfil del usuario con las fechas correctas
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           subscription_status: "active",
-          subscription_end_date: endDate.toISOString(),
+          plan_start_date: startDate.toISOString(),
+          plan_end_date: endDate.toISOString(),
         })
         .eq("id", user_id);
 
