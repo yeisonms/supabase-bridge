@@ -41,6 +41,28 @@ function generateUUID(): string {
 export { generateUUID };
 
 export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<void> {
+  // 1. Fetch integrity signature from secure backend endpoint
+  const sigResponse = await fetch('/api/wompi-signature', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      reference: options.reference,
+      amountInCents: options.amountInCents,
+      currency: options.currency,
+    }),
+  });
+
+  if (!sigResponse.ok) {
+    throw new Error('No se pudo generar la firma de integridad');
+  }
+
+  const { signature } = await sigResponse.json();
+
+  if (!signature) {
+    throw new Error('La firma de integridad no fue recibida del servidor');
+  }
+
+  // 2. Load Wompi script after obtaining signature
   await loadWompiScript();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +78,7 @@ export async function openWompiCheckout(options: WompiCheckoutOptions): Promise<
     reference: options.reference,
     publicKey: options.publicKey,
     redirectUrl: options.redirectUrl,
+    signature: { integrity: signature },
   });
 
   checkout.open((result: { transaction: { status: string } }) => {
