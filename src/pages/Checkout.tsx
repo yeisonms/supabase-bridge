@@ -146,9 +146,7 @@ const Checkout = () => {
                       <WompiButton
                         amountInCents={Math.round(plan.price * 100)}
                         reference={`${user.id}_${Date.now()}`}
-                        label={`Suscribirse Ahora · ${formatPrice(plan.price)}`}
-                        onSuccess={() => navigate('/app/welcome')}
-                        onDeclined={() => toast.error('El pago fue rechazado. Intenta con otra tarjeta.')}
+                        label={`Ir a Pagar de Forma Segura · ${formatPrice(plan.price)}`}
                       />
                     )}
 
