@@ -21,6 +21,7 @@ export const WompiButton = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePayment = async () => {
+    if (isLoading) return; // Bloqueo contra doble clic
     setIsLoading(true);
 
     try {
@@ -37,28 +38,15 @@ export const WompiButton = ({
         throw new Error('No se pudo generar la firma de seguridad');
       }
 
-      // 2. Inyectar Wompi SOLO cuando hacemos clic
-      // Si ya existe el script cargado, lo eliminamos para evitar duplicados
-      const existing = document.querySelector('script[src="https://checkout.wompi.co/widget.js"]');
-      if (existing) {
-        existing.remove();
-        // Limpiar referencia global para que el nuevo script registre limpio
-        delete (window as any).WidgetCheckout;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://checkout.wompi.co/widget.js';
-
-      script.onload = () => {
+      // 2. Función aislada para abrir el widget (datos siempre frescos)
+      const abrirWompi = (firma: string) => {
         setIsLoading(false);
-
-        // LLAVE QUEMADA DIRECTAMENTE AQUÍ
         const checkout = new (window as any).WidgetCheckout({
           currency: 'COP',
           amountInCents: amountInCents,
           reference: reference,
           publicKey: 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2',
-          signature: { integrity: data.signature },
+          signature: { integrity: firma },
         });
 
         checkout.open(function (result: { transaction: { status: string } }) {
@@ -72,6 +60,22 @@ export const WompiButton = ({
           }
         });
       };
+
+      // 3. Reutilizar script si ya existe en el DOM
+      const existingScript = document.getElementById('wompi-widget-script');
+      if (existingScript && (window as any).WidgetCheckout) {
+        abrirWompi(data.signature);
+        return;
+      }
+
+      // 4. Eliminar script huérfano sin WidgetCheckout cargado y crear uno nuevo
+      if (existingScript) existingScript.remove();
+
+      const script = document.createElement('script');
+      script.id = 'wompi-widget-script';
+      script.src = 'https://checkout.wompi.co/widget.js';
+
+      script.onload = () => abrirWompi(data.signature);
 
       script.onerror = () => {
         setIsLoading(false);
