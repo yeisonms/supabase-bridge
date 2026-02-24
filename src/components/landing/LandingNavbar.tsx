@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import logo from '@/assets/logo.png';
 
 const LandingNavbar = () => {
   const [open, setOpen] = useState(false);
@@ -20,8 +21,8 @@ const LandingNavbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
       <div className="container flex items-center justify-between h-16">
-        <Link to="/" className="text-2xl font-black tracking-tight">
-          <span className="text-gradient">Red</span>Fit
+        <Link to="/" className="flex items-center">
+          <img src={logo} alt="Logo RedFit" className="h-10 w-auto object-contain" />
         </Link>
 
         {/* Desktop */}
