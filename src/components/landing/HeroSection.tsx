@@ -1,19 +1,66 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import heroImg from "@/assets/fondo.png";
+import img1 from "@/assets/hero-gym.jpg";
+import img2 from "@/assets/partner-yoga.jpg";
+import img3 from "@/assets/partner-weights.jpg";
+import img4 from "@/assets/partner-martial.jpg";
+import img5 from "@/assets/partner-dance.jpg";
+import img6 from "@/assets/app-mockup.png";
+
+const carouselImages = [img1, img2, img3, img4, img5, img6];
+const carouselAlts = [
+  "Centro de entrenamiento fitness",
+  "Estudio de yoga y bienestar",
+  "Centro de pesas y fuerza",
+  "Centro de artes marciales",
+  "Estudio de danza y movimiento",
+  "App RedFit en acción",
+];
 
 const HeroSection = () => {
+  const isMobile = useIsMobile();
+  const [current, setCurrent] = useState(0);
+
+  const next = useCallback(() => {
+    setCurrent((prev) => (prev + 1) % carouselImages.length);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const id = setInterval(next, 3500);
+    return () => clearInterval(id);
+  }, [isMobile, next]);
+
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Background image */}
-      <img
-        src={heroImg}
-        alt="Personas entrenando en un gimnasio moderno"
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="eager"
-      />
+      {/* Desktop: static collage */}
+      {!isMobile && (
+        <img
+          src={heroImg}
+          alt="Collage de centros de bienestar y deporte"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+        />
+      )}
+
+      {/* Mobile: crossfade carousel */}
+      {isMobile &&
+        carouselImages.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={carouselAlts[i]}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+            style={{ opacity: i === current ? 1 : 0 }}
+            loading={i === 0 ? "eager" : "lazy"}
+          />
+        ))}
+
       {/* Dark overlay */}
-      <div className="absolute inset-0 bg-hero-overlay" />
+      <div className="absolute inset-0 bg-black/55" />
 
       <div className="relative z-10 container text-center px-4 py-20">
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight text-primary-foreground mb-6 animate-fade-in">
