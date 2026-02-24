@@ -6,7 +6,7 @@ const steps = [
   {
     icon: MapPin,
     title: '1. Encuentra tu lugar',
-    desc: 'Usa nuestra app para descubrir gimnasios, dojos de karate, escuelas de baile o estudios de yoga cerca de ti. Todo en un solo mapa.',
+    desc: 'Usa nuestra app para descubrir centros de bienestar y deporte cerca de ti: gimnasios, dojos, estudios de yoga, academias de baile y más. Todo en un solo mapa.',
   },
   {
     icon: QrCode,

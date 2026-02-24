@@ -10,7 +10,7 @@ const plans = [
     tagline: 'Para los que inician su rutina.',
     featured: false,
     benefits: [
-      'Acceso a gimnasios básicos',
+      'Acceso a centros aliados básicos',
       'Área de pesas y cardio',
       '1 acceso por día',
       'Sin cláusula de permanencia',
@@ -24,7 +24,7 @@ const plans = [
     benefits: [
       'Todo lo del Plan Start +',
       'Clases Grupales (Baile, Yoga, Pilates)',
-      'Gimnasios de gama media/alta',
+      'Centros aliados de gama media/alta',
       'Acceso a Dojos de Artes Marciales',
     ],
   },

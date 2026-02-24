@@ -107,7 +107,7 @@ const Register = () => {
       </Link>
       <div className="w-full max-w-md bg-card rounded-2xl shadow-card p-6">
         <h1 className="text-2xl font-bold text-center mb-6">
-          {isPartner ? 'Registrar mi Gimnasio' : 'Crear Cuenta'}
+          {isPartner ? 'Registrar mi Centro' : 'Crear Cuenta'}
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">

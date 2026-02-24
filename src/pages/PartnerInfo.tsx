@@ -18,7 +18,7 @@ import weightsImg from '@/assets/partner-weights.jpg';
 /* ── Data ── */
 
 const disciplines = [
-  { icon: Dumbbell, title: 'Gimnasios', desc: 'Pesas y Cardio' },
+  { icon: Dumbbell, title: 'Gimnasio & Fitness', desc: 'Pesas y Cardio' },
   { icon: Heart, title: 'Mente y Cuerpo', desc: 'Yoga, Pilates y Barre' },
   { icon: Swords, title: 'Artes Marciales', desc: 'Karate, Boxeo, Muay Thai, Jiu-Jitsu' },
   { icon: Music, title: 'Danza', desc: 'Salsa, Bachata, Urbano, Ballet' },
@@ -64,7 +64,7 @@ const PartnerInfo = () => (
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-lg mx-auto md:mx-0">
               Conectamos a miles de usuarios con tu pasión. Ya sea un Dojo, un
-              Estudio de Yoga, una Academia de Baile o un Gimnasio tradicional.
+              Estudio de Yoga, una Academia de Baile o un Centro de Fitness.
             </p>
             <Link to="/partner/register">
               <Button variant="hero" size="lg" className="rounded-full px-10 py-6 text-lg">

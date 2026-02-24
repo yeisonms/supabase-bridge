@@ -38,7 +38,7 @@ const Pass = () => {
     <div className="px-4 pt-12 pb-4 flex flex-col items-center">
       <h1 className="text-2xl font-black mb-2">Mi Pase</h1>
       <p className="text-muted-foreground text-sm mb-8 text-center">
-        Muestra este código QR en la recepción del gimnasio
+        Muestra este código QR en la recepción del centro aliado
       </p>
 
       <div className="bg-card rounded-3xl shadow-elevated p-8 border w-full max-w-xs relative">
@@ -69,7 +69,7 @@ const Pass = () => {
       </div>
 
       <p className="text-xs text-muted-foreground mt-6 text-center max-w-xs">
-        Este código se renueva automáticamente. El staff del gimnasio lo escaneará para validar tu acceso.
+        Este código se renueva automáticamente. El staff del centro aliado lo escaneará para validar tu acceso.
       </p>
     </div>
   );

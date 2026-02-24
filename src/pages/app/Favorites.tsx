@@ -44,7 +44,7 @@ const Favorites = () => {
         <div className="text-center py-20 flex flex-col items-center">
           <Heart className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-lg font-semibold mb-1">Sin favoritos aún</p>
-          <p className="text-muted-foreground text-sm">Explora gimnasios y guarda tus preferidos</p>
+          <p className="text-muted-foreground text-sm">Explora centros aliados y guarda tus preferidos</p>
         </div>
       ) : (
         <div className="space-y-3">

@@ -160,7 +160,7 @@ const GymDetail = () => {
   const handleReserve = async () => {
     if (!user || !id) return;
     if (!isActive) { toast.error('Necesitas un plan activo para entrenar'); navigate('/plans'); return; }
-    if (needsUpgrade) { toast.info('Necesitas un plan superior para este gimnasio'); navigate('/plans'); return; }
+    if (needsUpgrade) { toast.info('Necesitas un plan superior para este centro'); navigate('/plans'); return; }
 
     setCheckingIn(true);
     try {
@@ -200,7 +200,7 @@ const GymDetail = () => {
   if (!partner) {
     return (
       <div className="px-4 pt-12 text-center">
-        <p className="text-lg font-semibold">Gimnasio no encontrado</p>
+        <p className="text-lg font-semibold">Centro aliado no encontrado</p>
         <Button variant="ghost" onClick={() => navigate(-1)} className="mt-4">Volver</Button>
       </div>
     );

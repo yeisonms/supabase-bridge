@@ -90,7 +90,7 @@ const Reservations = () => {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-foreground truncate">{r.partners?.name || 'Gimnasio'}</p>
+            <p className="font-bold text-foreground truncate">{r.partners?.name || 'Centro Aliado'}</p>
             {r.partners?.address && (
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                 <MapPin className="h-3 w-3 shrink-0" /> {r.partners.address}
@@ -128,7 +128,7 @@ const Reservations = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Cancelar reserva?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    ¿Estás seguro de que deseas cancelar esta reserva en <span className="font-semibold">{r.partners?.name}</span>? Liberarás tu pase diario y el cupo en el gimnasio.
+                    ¿Estás seguro de que deseas cancelar esta reserva en <span className="font-semibold">{r.partners?.name}</span>? Liberarás tu pase diario y el cupo en el centro.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -170,7 +170,7 @@ const Reservations = () => {
             <div className="text-center py-12 space-y-3">
               <Ticket className="h-12 w-12 text-muted-foreground/30 mx-auto" />
               <p className="text-muted-foreground">No tienes reservas activas.</p>
-              <Button variant="outline" onClick={() => navigate('/app/explore')}>Explorar gimnasios</Button>
+              <Button variant="outline" onClick={() => navigate('/app/explore')}>Explorar centros aliados</Button>
             </div>
           ) : (
             active.map((r) => <ReservationCard key={r.id} r={r} showCancel />)
