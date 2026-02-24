@@ -8,16 +8,14 @@ import img2 from "@/assets/partner-yoga.jpg";
 import img3 from "@/assets/partner-weights.jpg";
 import img4 from "@/assets/partner-martial.jpg";
 import img5 from "@/assets/partner-dance.jpg";
-import img6 from "@/assets/app-mockup.png";
 
-const carouselImages = [img1, img2, img3, img4, img5, img6];
+const carouselImages = [img1, img2, img3, img4, img5];
 const carouselAlts = [
   "Centro de entrenamiento fitness",
   "Estudio de yoga y bienestar",
   "Centro de pesas y fuerza",
   "Centro de artes marciales",
   "Estudio de danza y movimiento",
-  "App RedFit en acción",
 ];
 
 const HeroSection = () => {
