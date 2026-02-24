@@ -1,7 +1,8 @@
-import { NavLink, Outlet, Navigate } from 'react-router-dom';
+import { NavLink, Outlet, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BarChart3, Users, Building2, CreditCard, TrendingUp, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logo from '@/assets/logo.png';
 
 const sidebarItems = [
   { to: '/admin', icon: BarChart3, label: 'Dashboard', end: true },
@@ -14,25 +15,15 @@ const sidebarItems = [
 const AdminLayout = () => {
   const { user, profile, loading, signOut } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/40">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) return <Navigate to="/login" replace />;
-  if (profile?.role !== 'super_admin') return <Navigate to="/app" replace />;
-
   return (
     <div className="min-h-screen flex bg-muted/40">
       {/* Sidebar */}
       <aside className="hidden md:flex w-60 flex-col bg-card border-r fixed inset-y-0 left-0 z-40">
-        <div className="p-5 border-b">
-          <h1 className="text-lg font-bold tracking-tight">
-            Red<span className="text-primary">Fit</span> Admin
-          </h1>
+        <div className="p-4 border-b">
+          <Link to="/admin" className="flex items-center gap-2">
+            <img src={logo} alt="Logo RedFit" className="h-8 w-auto object-contain" />
+            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Admin</span>
+          </Link>
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-1">
@@ -66,7 +57,10 @@ const AdminLayout = () => {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-sm font-bold">Red<span className="text-primary">Fit</span> Admin</h1>
+          <Link to="/admin" className="flex items-center gap-2">
+            <img src={logo} alt="Logo RedFit" className="h-6 w-auto object-contain" />
+            <span className="text-xs font-bold text-muted-foreground uppercase">Admin</span>
+          </Link>
           <Button variant="ghost" size="sm" onClick={signOut}>
             <LogOut className="h-4 w-4" />
           </Button>

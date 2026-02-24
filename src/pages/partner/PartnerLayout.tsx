@@ -1,10 +1,10 @@
-import { Outlet, Navigate, useNavigate } from 'react-router-dom';
+import { Outlet, Navigate, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { LogOut, Settings, Landmark, ScanLine } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import logo from '@/assets/logo.png';
 
 const PartnerLayout = () => {
   const { user, profile, loading } = useAuth();
@@ -14,23 +14,14 @@ const PartnerLayout = () => {
     await supabase.auth.signOut();
     navigate('/login', { replace: true });
   };
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) return <Navigate to="/login" replace />;
-  if (profile?.role !== 'partner_admin') return <Navigate to="/app" replace />;
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container flex items-center justify-between h-14 px-4">
-          <Link to="/partner" className="text-lg font-black">
-            <span className="text-gradient">Red</span>Fit <span className="text-sm font-normal text-muted-foreground">Partner</span>
+          <Link to="/partner" className="flex items-center gap-2">
+            <img src={logo} alt="Logo RedFit" className="h-8 w-auto object-contain" />
+            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Partner</span>
           </Link>
           <div className="flex items-center gap-1">
             <Tooltip>
