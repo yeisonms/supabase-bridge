@@ -5,6 +5,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import logo from '@/assets/logo.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -24,8 +25,8 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-secondary">
-      <Link to="/" className="text-3xl font-black mb-8">
-        <span className="text-gradient">Red</span>Fit
+      <Link to="/" className="mb-8 flex items-center justify-center">
+        <img src={logo} alt="Logo RedFit" className="h-10 md:h-12 w-auto object-contain" />
       </Link>
       <div className="w-full max-w-sm bg-card rounded-2xl shadow-card p-6">
         <h1 className="text-2xl font-bold text-center mb-6">Iniciar Sesión</h1>
