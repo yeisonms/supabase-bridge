@@ -21,7 +21,7 @@ const AdminLayout = () => {
       <aside className="hidden md:flex w-60 flex-col bg-card border-r fixed inset-y-0 left-0 z-40">
         <div className="p-4 border-b">
           <Link to="/admin" className="flex items-center gap-2">
-            <img src={logo} alt="Logo RedFit" className="h-8 w-auto object-contain" />
+            <img src={logo} alt="Logo RedFit" className="h-10 w-auto object-contain" />
             <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Admin</span>
           </Link>
         </div>
@@ -58,7 +58,7 @@ const AdminLayout = () => {
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <Link to="/admin" className="flex items-center gap-2">
-            <img src={logo} alt="Logo RedFit" className="h-6 w-auto object-contain" />
+            <img src={logo} alt="Logo RedFit" className="h-8 w-auto object-contain" />
             <span className="text-xs font-bold text-muted-foreground uppercase">Admin</span>
           </Link>
           <Button variant="ghost" size="sm" onClick={signOut}>

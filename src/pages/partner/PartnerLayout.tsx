@@ -20,7 +20,7 @@ const PartnerLayout = () => {
       <header className="border-b bg-card">
         <div className="container flex items-center justify-between h-14 px-4">
           <Link to="/partner" className="flex items-center gap-2">
-            <img src={logo} alt="Logo RedFit" className="h-8 w-auto object-contain" />
+            <img src={logo} alt="Logo RedFit" className="h-8 md:h-10 w-auto object-contain" />
             <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Partner</span>
           </Link>
           <div className="flex items-center gap-1">
