@@ -19,7 +19,7 @@ const HeroSection = () => {
         <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight text-primary-foreground mb-6 animate-fade-in">
           Una suscripción.
           <br />
-          <span className="text-gradient">Cientos de gimnasios.</span>
+          <span className="text-gradient">Cientos de centros.</span>
         </h1>
         <p className="text-lg sm:text-xl text-primary-foreground/80 max-w-xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: '0.15s' }}>
           Entrena donde quieras, cuando quieras. Sin ataduras, sin límites.

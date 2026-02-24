@@ -141,7 +141,7 @@ const Explore = () => {
     return km < 1 ? `A ${Math.round(km * 1000)}m` : `A ${km.toFixed(1)}km`;
   };
 
-  const getGymAccessStatus = (gym: NearbyPartner) => {
+  const getPartnerAccessStatus = (gym: NearbyPartner) => {
     if (!isActive) return 'no-plan';
     const minLevel = gym.min_plan_level ?? 1;
     return userAccessLevel >= minLevel ? 'accessible' : 'upgrade';
@@ -256,7 +256,7 @@ const Explore = () => {
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar gimnasio..."
+          placeholder="Buscar centro aliado..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           className="pl-9 h-9 text-sm"
@@ -276,7 +276,7 @@ const Explore = () => {
       ) : view === 'list' ? (
         <div className="space-y-3 overflow-y-auto flex-1">
           {filteredPartners.map((p) => {
-            const status = getGymAccessStatus(p);
+            const status = getPartnerAccessStatus(p);
             return (
               <Link to={`/app/gym/${p.id}`} key={p.id} className="block">
                 <div className={`bg-card rounded-xl p-4 shadow-card border flex gap-4 hover:shadow-elevated transition-shadow relative ${status === 'upgrade' ? 'opacity-60' : ''}`}>
@@ -358,12 +358,12 @@ const Explore = () => {
                           {formatDistance(selectedPartner.distance_km)}
                         </p>
                       )}
-                      {getGymAccessStatus(selectedPartner) === 'no-plan' && (
+                      {getPartnerAccessStatus(selectedPartner) === 'no-plan' && (
                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                           <Lock className="h-3 w-3" /> Requiere plan
                         </p>
                       )}
-                      {getGymAccessStatus(selectedPartner) === 'upgrade' && (
+                      {getPartnerAccessStatus(selectedPartner) === 'upgrade' && (
                         <p className="text-xs text-amber-600 mt-1">Plan Superior requerido</p>
                       )}
                       <button

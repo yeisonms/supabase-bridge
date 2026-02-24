@@ -104,7 +104,7 @@ const PartnerRegister = () => {
       console.error('[PartnerRegister] RPC error:', error.message);
       toast({
         title: 'Error al registrar',
-        description: 'No se pudo registrar el gimnasio. Intenta de nuevo.',
+        description: 'No se pudo registrar el centro. Intenta de nuevo.',
         variant: 'destructive',
       });
       return;
@@ -168,12 +168,12 @@ const PartnerRegister = () => {
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <Building2 className="h-5 w-5 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold">Registrar mi Gimnasio</h1>
+          <h1 className="text-2xl font-bold">Registrar mi Centro</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="gymName">Nombre del Gimnasio *</Label>
+            <Label htmlFor="gymName">Nombre del Centro *</Label>
             <Input
               id="gymName"
               value={gymName}
@@ -228,7 +228,7 @@ const PartnerRegister = () => {
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe las actividades, servicios y lo que hace especial a tu gimnasio..."
+              placeholder="Describe las actividades, servicios y lo que hace especial a tu centro..."
               maxLength={500}
               rows={3}
             />
@@ -266,7 +266,7 @@ const PartnerRegister = () => {
 
           {/* Fotos del gimnasio */}
           <div className="space-y-2">
-            <Label>Fotos del Gimnasio (máx. {MAX_PHOTOS})</Label>
+            <Label>Fotos del Centro (máx. {MAX_PHOTOS})</Label>
             <div className="flex flex-wrap gap-3">
               {photoPreviews.map((src, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border">
@@ -306,7 +306,7 @@ const PartnerRegister = () => {
             className="w-full mt-2"
             disabled={submitting}
           >
-            {submitting ? 'Registrando…' : 'Registrar Gimnasio'}
+            {submitting ? 'Registrando…' : 'Registrar Centro'}
           </Button>
         </form>
       </div>

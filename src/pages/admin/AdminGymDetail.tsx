@@ -51,7 +51,7 @@ const AdminGymDetail = () => {
   if (!partner) {
     return (
       <div className="text-center py-20">
-        <p className="font-semibold">Gimnasio no encontrado</p>
+        <p className="font-semibold">Centro aliado no encontrado</p>
         <Button variant="ghost" onClick={() => navigate(-1)} className="mt-4">Volver</Button>
       </div>
     );
@@ -230,7 +230,7 @@ const AdminGymDetail = () => {
                   Guardar
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">Monto que se paga al gimnasio por cada visita validada. Solo visible para administradores.</p>
+              <p className="text-xs text-muted-foreground">Monto que se paga al centro aliado por cada visita validada. Solo visible para administradores.</p>
             </CardContent>
           </Card>
         </div>
@@ -275,7 +275,7 @@ const AdminGymDetail = () => {
                 {lat && lng ? (
                   <div className="rounded-xl overflow-hidden border">
                     <iframe
-                      title="Ubicación del gimnasio"
+                      title="Ubicación del centro aliado"
                       width="100%"
                       height="250"
                       style={{ border: 0 }}

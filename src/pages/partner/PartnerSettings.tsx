@@ -185,7 +185,7 @@ const PartnerSettings = () => {
   if (!partner) {
     return (
       <div className="px-4 pt-12 text-center">
-        <p className="font-semibold">No tienes un gimnasio asignado.</p>
+        <p className="font-semibold">No tienes un centro aliado asignado.</p>
       </div>
     );
   }
@@ -242,7 +242,7 @@ const PartnerSettings = () => {
               <div key={url} className="relative group rounded-xl overflow-hidden aspect-square bg-muted">
                 <img
                   src={url}
-                  alt="Foto del gimnasio"
+                  alt="Foto del centro"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
@@ -286,7 +286,7 @@ const PartnerSettings = () => {
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe tu gimnasio, servicios, ambiente..."
+              placeholder="Describe tu centro, servicios, ambiente..."
               rows={4}
             />
           </div>

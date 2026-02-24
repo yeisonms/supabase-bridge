@@ -79,7 +79,7 @@ const PartnerFinances = () => {
     return (
       <div className="px-4 pt-12 text-center">
         <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="font-semibold">No tienes un gimnasio asignado</p>
+        <p className="font-semibold">No tienes un centro aliado asignado</p>
       </div>
     );
   }

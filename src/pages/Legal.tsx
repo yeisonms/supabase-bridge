@@ -47,7 +47,7 @@ const Legal = () => {
 
               <h3 className="text-lg font-semibold text-foreground">2. Descripción del Servicio</h3>
               <p>
-                RedFit es una plataforma digital que actúa como intermediario tecnológico, conectando a usuarios con centros deportivos y gimnasios aliados. RedFit facilita la reserva de cupos y el acceso a instalaciones deportivas mediante planes de suscripción.
+                RedFit es una plataforma digital que actúa como intermediario tecnológico, conectando a usuarios con centros de bienestar y deporte aliados. RedFit facilita la reserva de cupos y el acceso a instalaciones deportivas mediante planes de suscripción.
               </p>
 
               <h3 className="text-lg font-semibold text-foreground">3. Registro y Cuenta</h3>
@@ -83,7 +83,7 @@ const Legal = () => {
 
               <h3 className="text-lg font-semibold text-foreground">1. Rol de RedFit como Intermediario</h3>
               <p>
-                RedFit actúa exclusivamente como una plataforma tecnológica intermediaria que conecta usuarios con centros deportivos aliados. RedFit <strong>NO</strong> es propietario, operador ni administrador de ningún gimnasio, centro deportivo o instalación listada en la plataforma.
+                RedFit actúa exclusivamente como una plataforma tecnológica intermediaria que conecta usuarios con centros de bienestar y deporte aliados. RedFit <strong>NO</strong> es propietario, operador ni administrador de ningún centro aliado o instalación listada en la plataforma.
               </p>
 
               <h3 className="text-lg font-semibold text-foreground">2. Responsabilidad por Lesiones y Accidentes</h3>

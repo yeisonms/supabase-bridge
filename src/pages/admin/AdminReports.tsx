@@ -14,7 +14,7 @@ const PIE_COLORS = ['hsl(0,82%,52%)', 'hsl(15,90%,55%)', 'hsl(30,85%,50%)', 'hsl
 
 type PlanDistItem = { name: string; value: number };
 type DayUsage = { day: string; visitas: number };
-type TopGym = { name: string; address: string | null; visits: number };
+type TopPartner = { name: string; address: string | null; visits: number };
 type ChurnUser = { name: string; email: string; status: string };
 
 const AdminReports = () => {
@@ -25,7 +25,7 @@ const AdminReports = () => {
   const [activePartners, setActivePartners] = useState(0);
   const [last7Days, setLast7Days] = useState<DayUsage[]>([]);
   const [planDist, setPlanDist] = useState<PlanDistItem[]>([]);
-  const [topGyms, setTopGyms] = useState<TopGym[]>([]);
+  const [topGyms, setTopGyms] = useState<TopPartner[]>([]);
   const [churnUsers, setChurnUsers] = useState<ChurnUser[]>([]);
 
   useEffect(() => {
@@ -147,7 +147,7 @@ const AdminReports = () => {
         <KpiCard icon={DollarSign} label="MRR" value={`$${mrr.toLocaleString('es-CO')} COP`} sub="Ingresos recurrentes" color="text-emerald-600" />
         <KpiCard icon={Users} label="Usuarios Activos" value={String(activeUsers)} sub="Suscripción activa" color="text-primary" />
         <KpiCard icon={CheckCircle} label="Visitas (mes)" value={String(monthVisits)} sub="Solo confirmadas" color="text-blue-600" />
-        <KpiCard icon={Building2} label="Partners Activos" value={String(activePartners)} sub="Gimnasios aprobados" color="text-amber-600" />
+        <KpiCard icon={Building2} label="Partners Activos" value={String(activePartners)} sub="Centros aliados aprobados" color="text-amber-600" />
       </div>
 
       {/* Charts */}
@@ -196,7 +196,7 @@ const AdminReports = () => {
         <div className="bg-card rounded-xl border p-5">
           <div className="flex items-center gap-2 mb-4">
             <Trophy className="h-4 w-4 text-amber-500" />
-            <h3 className="font-bold text-sm">Top 5 Gimnasios (Este mes)</h3>
+            <h3 className="font-bold text-sm">Top 5 Centros Aliados (Este mes)</h3>
           </div>
           {topGyms.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">Sin datos este mes.</p>
@@ -205,7 +205,7 @@ const AdminReports = () => {
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="pb-2 font-medium">#</th>
-                  <th className="pb-2 font-medium">Gimnasio</th>
+                  <th className="pb-2 font-medium">Centro Aliado</th>
                   <th className="pb-2 font-medium text-right">Visitas</th>
                 </tr>
               </thead>

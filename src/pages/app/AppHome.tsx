@@ -16,8 +16,8 @@ const AppHome = () => {
         <Link to="/app/explore" className="block">
           <div className="bg-hero-gradient rounded-2xl p-6 text-primary-foreground">
             <Compass className="h-8 w-8 mb-3 opacity-90" />
-            <h2 className="text-xl font-bold mb-1">Explorar Gyms</h2>
-            <p className="text-sm opacity-80">Encuentra gimnasios cerca de ti</p>
+            <h2 className="text-xl font-bold mb-1">Explorar Centros</h2>
+            <p className="text-sm opacity-80">Encuentra centros aliados cerca de ti</p>
           </div>
         </Link>
         <Link to="/app/pass" className="block">

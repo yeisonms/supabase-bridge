@@ -112,7 +112,7 @@ const PartnerDashboard = () => {
     return (
       <div className="px-4 pt-12 text-center">
         <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="font-semibold">No tienes un gimnasio asignado</p>
+        <p className="font-semibold">No tienes un centro aliado asignado</p>
         <p className="text-sm text-muted-foreground mt-1">Contacta al administrador de RedFit.</p>
       </div>
     );
@@ -131,7 +131,7 @@ const PartnerDashboard = () => {
       {partner.is_active === false && (
         <div className="flex items-center gap-3 bg-yellow-500/15 border border-yellow-500/30 text-yellow-700 dark:text-yellow-400 rounded-xl px-4 py-3 mb-6">
           <AlertTriangle className="h-5 w-5 shrink-0" />
-          <p className="text-sm font-medium">Tu cuenta está en revisión. Tu gimnasio no será visible para los usuarios hasta que sea aprobado.</p>
+          <p className="text-sm font-medium">Tu cuenta está en revisión. Tu centro no será visible para los usuarios hasta que sea aprobado.</p>
         </div>
       )}
       <h1 className="text-2xl font-black mb-1">{partner.name}</h1>

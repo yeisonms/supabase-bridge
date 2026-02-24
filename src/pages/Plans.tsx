@@ -22,7 +22,7 @@ const faqs = [
     a: 'Tu plan se cobra automáticamente cada mes a la tarjeta registrada. No hay cobros ocultos ni cuotas adicionales. Puedes ver tu próxima fecha de cobro desde tu perfil.',
   },
   {
-    q: '¿Puedo ir a diferentes gimnasios el mismo día?',
+    q: '¿Puedo ir a diferentes centros el mismo día?',
     a: 'Puedes registrar un check-in por día en cualquier centro de nuestra red. Al día siguiente, eres libre de elegir otro lugar completamente distinto.',
   },
   {

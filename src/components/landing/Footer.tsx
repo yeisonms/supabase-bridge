@@ -7,7 +7,7 @@ const Footer = () => (
         © {new Date().getFullYear()} <span className="font-bold text-foreground">RedFit</span>. Todos los derechos reservados.
       </p>
       <div className="flex gap-6 text-sm text-muted-foreground">
-        <Link to="/partner-info" className="hover:text-foreground transition-colors">Soy Gimnasio</Link>
+        <Link to="/partner-info" className="hover:text-foreground transition-colors">Sé un Aliado</Link>
         <Link to="/login" className="hover:text-foreground transition-colors">Iniciar Sesión</Link>
       </div>
     </div>
