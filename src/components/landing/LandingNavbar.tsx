@@ -19,25 +19,25 @@ const LandingNavbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b">
-      <div className="container flex items-center justify-between h-16">
-        <Link to="/" className="flex items-center">
-          <img src={logo} alt="Logo RedFit" className="h-8 md:h-10 w-auto object-contain" />
+    <nav className="fixed top-0 left-0 right-0 z-50 glassmorphism shadow-sm border-b-white/10 transition-all duration-300">
+      <div className="container flex items-center justify-between h-20 px-4 md:px-8">
+        <Link to="/" className="flex items-center transition-transform hover:scale-105">
+          <img src={logo} alt="Logo RedFit" className="h-10 md:h-12 w-auto object-contain" />
         </Link>
 
         {/* Desktop */}
-        <div className="hidden md:flex items-center gap-6">
-          <button onClick={scrollToFeatures} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+        <div className="hidden md:flex items-center gap-8">
+          <button onClick={scrollToFeatures} className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
             Cómo Funciona
           </button>
-          <Link to="/plans" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/plans" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
             Planes
           </Link>
-          <Link to="/partner-info" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/partner-info" className="text-sm font-semibold text-muted-foreground hover:text-primary transition-colors">
             Sé un Aliado RedFit
           </Link>
           <Link to="/login">
-            <Button size="sm">Iniciar Sesión</Button>
+            <Button size="lg" className="rounded-full px-8 shadow-elevated hover:shadow-primary/50 transition-all">Iniciar Sesión</Button>
           </Link>
         </div>
 

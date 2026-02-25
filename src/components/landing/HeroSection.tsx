@@ -58,33 +58,32 @@ const HeroSection = () => {
         ))}
 
       {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-hero-overlay" />
 
-      <div className="relative z-10 container text-center px-4 py-20">
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight text-primary-foreground mb-6 animate-fade-in">
+      <div className="relative z-10 container text-center px-4 py-24 flex flex-col items-center justify-center min-h-[90vh]">
+        <h1 className="text-5xl sm:text-6xl md:text-8xl font-black leading-tight text-white mb-6 drop-shadow-2xl animate-fade-in">
           Una suscripción.
           <br />
           <span className="text-gradient">Cientos de centros.</span>
         </h1>
         <p
-          className="text-lg sm:text-xl text-primary-foreground/80 max-w-xl mx-auto mb-10 animate-fade-in"
+          className="text-lg sm:text-2xl text-white/90 max-w-2xl mx-auto mb-12 drop-shadow-md animate-fade-in font-medium"
           style={{ animationDelay: "0.15s" }}
         >
           Entrena donde quieras, cuando quieras. Sin ataduras, sin límites.
         </p>
         <div
-          className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up"
+          className="flex flex-col sm:flex-row gap-6 justify-center animate-slide-up w-full max-w-md sm:max-w-none mx-auto"
           style={{ animationDelay: "0.3s" }}
         >
-          <Link to="/register">
-            <Button variant="hero" size="lg" className="w-full sm:w-auto px-10 py-6 text-lg rounded-full">
+          <Link to="/register" className="w-full sm:w-auto">
+            <Button size="lg" className="w-full sm:w-auto px-12 py-7 text-xl font-bold rounded-full shadow-elevated hover:shadow-primary/60 hover:scale-105 transition-all bg-primary hover:bg-primary/90 text-white border-0">
               Comenzar Ahora
             </Button>
           </Link>
           <Button
-            variant="hero-outline"
             size="lg"
-            className="w-full sm:w-auto px-10 py-6 text-lg rounded-full"
+            className="w-full sm:w-auto px-12 py-7 text-xl font-bold rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/20 transition-all hover:scale-105"
             onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
           >
             Cómo Funciona

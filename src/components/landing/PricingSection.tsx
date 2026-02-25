@@ -44,7 +44,7 @@ const plans = [
 
 const PricingSection = () => {
   return (
-    <section id="pricing" className="py-20 md:py-28 bg-background">
+    <section id="pricing" className="py-24 md:py-32 bg-secondary/30 relative">
       <div className="container px-4">
         <h2 className="text-3xl md:text-4xl font-black text-center mb-3 text-foreground">
           Planes <span className="text-gradient">Flexibles</span>
@@ -53,24 +53,23 @@ const PricingSection = () => {
           Elige el plan que se adapte a tu ritmo. Sin contratos, sin sorpresas.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl p-8 flex flex-col transition-shadow ${
-                plan.featured
-                  ? 'border-2 border-primary shadow-lg scale-[1.03] bg-card'
-                  : 'border border-border shadow-sm bg-card'
-              }`}
+              className={`relative rounded-3xl p-10 flex flex-col transition-all duration-300 ${plan.featured
+                  ? 'glass-card border-2 border-primary shadow-elevated md:scale-[1.05] z-10'
+                  : 'glassmorphism border border-border/50 shadow-md hover:border-primary/50'
+                }`}
             >
               {plan.featured && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 text-xs font-bold">
+                <Badge className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-6 py-1.5 text-sm font-bold shadow-lg shadow-primary/30 uppercase tracking-wider rounded-full">
                   🔥 Más Popular
                 </Badge>
               )}
 
-              <h3 className="text-2xl font-bold text-foreground mb-1">Plan {plan.name}</h3>
-              <p className="text-muted-foreground text-sm mb-5">{plan.tagline}</p>
+              <h3 className="text-3xl font-bold text-foreground mb-2">Plan {plan.name}</h3>
+              <p className="text-muted-foreground text-sm mb-8">{plan.tagline}</p>
 
               <div className="mb-6">
                 <span className="text-4xl font-black text-foreground">{plan.price}</span>
@@ -86,11 +85,13 @@ const PricingSection = () => {
                 ))}
               </ul>
 
-              <Link to={`/register?plan=${plan.name.toLowerCase()}`}>
+              <Link to={`/register?plan=${plan.name.toLowerCase()}`} className="mt-auto">
                 <Button
-                  className="w-full text-base"
+                  className={`w-full text-lg py-6 rounded-2xl transition-all ${plan.featured
+                      ? 'bg-primary hover:bg-primary/90 shadow-elevated hover:shadow-primary/50 text-white'
+                      : 'bg-white/5 hover:bg-white/10 text-foreground border-white/10'
+                    }`}
                   variant={plan.featured ? 'default' : 'outline'}
-                  size="lg"
                 >
                   Elegir {plan.name}
                 </Button>

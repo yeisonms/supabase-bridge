@@ -24,12 +24,15 @@ const Login = () => {
   }, [user, profile, loading, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-secondary">
-      <Link to="/" className="mb-8 flex items-center justify-center">
-        <img src={logo} alt="Logo RedFit" className="h-10 md:h-12 w-auto object-contain" />
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background relative overflow-hidden">
+      {/* Decorative background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg h-[500px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
+
+      <Link to="/" className="mb-8 flex items-center justify-center relative z-10 transition-transform hover:scale-105">
+        <img src={logo} alt="Logo RedFit" className="h-12 md:h-14 w-auto object-contain drop-shadow-md" />
       </Link>
-      <div className="w-full max-w-sm bg-card rounded-2xl shadow-card p-6">
-        <h1 className="text-2xl font-bold text-center mb-6">Iniciar Sesión</h1>
+      <div className="w-full max-w-md glass-card rounded-3xl p-8 relative z-10">
+        <h1 className="text-3xl font-black text-center mb-8 text-foreground">Iniciar Sesión</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{
@@ -39,11 +42,18 @@ const Login = () => {
                 colors: {
                   brand: 'hsl(0 82% 52%)',
                   brandAccent: 'hsl(0 82% 45%)',
+                  inputText: 'hsl(0 0% 98%)',
+                  inputBackground: 'transparent',
+                  inputBorder: 'hsl(0 0% 20%)',
                 },
-                borderWidths: { buttonBorderWidth: '0px' },
-                radii: { borderRadiusButton: '0.75rem', inputBorderRadius: '0.75rem' },
+                borderWidths: { buttonBorderWidth: '0px', inputBorderWidth: '1px' },
+                radii: { borderRadiusButton: '1rem', inputBorderRadius: '0.75rem' },
               },
             },
+            className: {
+              button: 'shadow-md transition-all hover:scale-[1.02] hover:shadow-primary/30',
+              input: 'transition-all focus:border-primary',
+            }
           }}
           view="sign_in"
           showLinks={true}
