@@ -5,39 +5,49 @@ import { Badge } from '@/components/ui/badge';
 
 const plans = [
   {
-    name: 'Start',
+    name: 'Lite',
     price: '$59.900',
-    tagline: 'Para los que inician su rutina.',
+    tagline: 'Para empezar tu rutina.',
     featured: false,
     benefits: [
-      'Acceso a centros aliados básicos',
-      'Área de pesas y cardio',
-      '1 acceso por día',
-      'Sin cláusula de permanencia',
+      'Acceso a centros deportivos básicos',
+      '15 ingresos mensuales',
+      '1 ingreso diario',
     ],
   },
   {
-    name: 'Move',
+    name: 'Mid',
     price: '$89.900',
     tagline: 'Variedad total para tu semana.',
-    featured: true,
+    featured: false,
     benefits: [
-      'Todo lo del Plan Start +',
-      'Clases Grupales (Baile, Yoga, Pilates)',
-      'Centros aliados de gama media/alta',
-      'Acceso a Dojos de Artes Marciales',
+      'Todo lo del Plan Lite +',
+      'Acceso a centros deportivos premium',
+      '20 ingresos mensuales',
     ],
   },
   {
-    name: 'Pro',
-    price: '$129.900',
-    tagline: 'Sin límites. Entrena como un atleta.',
+    name: 'Plus',
+    price: '$110.000',
+    tagline: 'Variedad premium.',
+    featured: true,
+    benefits: [
+      'Todo lo del Plan Mid +',
+      'Acceso a centros deportivos exclusivos',
+      '20 ingresos mensuales',
+      'Acceso prioritario',
+    ],
+  },
+  {
+    name: 'Unlimited',
+    price: '$159.900',
+    tagline: 'Entrena como un atleta.',
     featured: false,
     benefits: [
-      'Todo lo del Plan Move +',
-      'Acceso ilimitado a centros Premium',
-      'Clases exclusivas (Crossfit, Boxeo Avanzado)',
-      'Acceso prioritario en horas pico',
+      'Todo lo del Plan Plus +',
+      'Acceso ilimitado a toda la red',
+      '25 ingresos mensuales',
+      'Clases exclusivas',
     ],
   },
 ];
@@ -53,7 +63,7 @@ const PricingSection = () => {
           Elige el plan que se adapte a tu ritmo. Sin contratos, sin sorpresas.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-stretch">
           {plans.map((plan) => (
             <div
               key={plan.name}
