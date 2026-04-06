@@ -57,7 +57,7 @@ const GymDetail = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('current_plan_id, subscription_status, avatar_url')
+        .select('current_plan_id, subscription_status, avatar_url, plan_end_date')
         .eq('id', user!.id)
         .single();
       return data;
@@ -159,6 +159,15 @@ const GymDetail = () => {
 
   const handleReserve = async () => {
     if (!user || !id) return;
+    
+    // Explicit Guard Clause for Plan Expiration
+    const isPlanExpired = userSub?.plan_end_date ? new Date(userSub.plan_end_date).getTime() < Date.now() : false;
+    if (isPlanExpired) {
+      toast.error('Tu plan ha expirado. Por favor, renueva tu suscripción para seguir entrenando');
+      navigate('/plans');
+      return;
+    }
+
     if (!isActive) { toast.error('Necesitas un plan activo para entrenar'); navigate('/plans'); return; }
     if (needsUpgrade) { toast.info('Necesitas un plan superior para este centro'); navigate('/plans'); return; }
 
@@ -249,10 +258,15 @@ const GymDetail = () => {
         </div>
       );
     }
-    if (!isActive) {
+    const isPlanExpired = userSub?.plan_end_date ? new Date(userSub.plan_end_date).getTime() < Date.now() : false;
+
+    if (!isActive || isPlanExpired) {
       return (
-        <Button variant="secondary" size="lg" className="w-full rounded-full py-6" onClick={() => { toast.error('Necesitas un plan activo'); navigate('/plans'); }}>
-          <Lock className="h-5 w-5 mr-2" /> Adquirir Plan
+        <Button variant="secondary" size="lg" className="w-full rounded-full py-6" onClick={() => { 
+          toast.error(isPlanExpired ? 'Tu plan ha expirado' : 'Necesitas un plan activo'); 
+          navigate('/plans'); 
+        }}>
+          <Lock className="h-5 w-5 mr-2" /> {isPlanExpired ? 'Renovar Plan' : 'Adquirir Plan'}
         </Button>
       );
     }
