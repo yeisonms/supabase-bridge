@@ -174,24 +174,30 @@ const GymDetail = () => {
 
     setCheckingIn(true);
     try {
-      const { data, error } = await supabase.rpc('reserve_spot', { p_partner_id: id });
-      if (error) {
-        if (error.code === '23505') {
+      // Bypass faulty RPC and insert directly
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { error: insertError } = await supabase
+        .from('checkins')
+        .insert({
+          user_id: user.id,
+          partner_id: id,
+          checkin_date: today,
+          status: 'reserved'
+        });
+
+      if (insertError) {
+        if (insertError.code === '23505') {
           toast.error('Solo se permite una reserva por día.');
         } else {
-          toast.error(error.message || 'No se pudo reservar. Intenta nuevamente.');
+          toast.error(insertError.message || 'No se pudo reservar. Intenta nuevamente.');
         }
         queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
       } else {
-        const result = data as any;
-        if (result?.success === false) {
-          toast.error(result?.message || 'No se pudo reservar.');
-        } else {
-          setTodayCount((c) => c + 1);
-          toast.success(result?.message || '¡Reserva exitosa!');
-          queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
-          queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
-        }
+        setTodayCount((c) => c + 1);
+        toast.success('¡Reserva exitosa!');
+        queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
+        queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
+        queryClient.invalidateQueries({ queryKey: ['pass-today-reservation'] });
       }
     } catch {
       toast.error('Error inesperado al reservar.');

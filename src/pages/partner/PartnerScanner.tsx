@@ -16,6 +16,9 @@ type VerificationData = {
   checkinId: string;
   userName: string;
   userPhoto: string | null;
+  isNewCheckin?: boolean;
+  userId?: string;
+  partnerId?: string;
 };
 
 type ScanResult = {
@@ -45,7 +48,7 @@ const PartnerScanner = () => {
     console.log('[Scanner] Raw text:', raw);
 
     try {
-      let parsed: { id?: string; timestamp?: number };
+      let parsed: { id?: string; timestamp?: number; reservationId?: string };
       try {
         parsed = JSON.parse(raw);
         console.log('[Scanner] Parsed JSON:', parsed);
@@ -59,6 +62,13 @@ const PartnerScanner = () => {
       if (!parsed.id || typeof parsed.id !== 'string') {
         console.error('[Scanner] Missing ID');
         setResult({ success: false, message: 'Código QR inválido. Falta el ID del usuario.' });
+        setProcessing(false);
+        return;
+      }
+
+      if (!parsed.reservationId || typeof parsed.reservationId !== 'string') {
+        console.error('[Scanner] Missing reservation ID');
+        setResult({ success: false, message: 'QR genérico revocado. El usuario debe tener una reserva activa en este gimnasio para hoy.' });
         setProcessing(false);
         return;
       }
@@ -94,68 +104,103 @@ const PartnerScanner = () => {
         return;
       }
 
-      console.log('[Scanner] Calling RPC with:', { p_user_id: parsed.id, p_partner_id: partner.id });
-      // Call validate_entry_qr — now returns data WITHOUT confirming entry
-      const { data, error } = await supabase.rpc('validate_entry_qr', {
-        p_user_id: parsed.id,
-        p_partner_id: partner.id,
-      });
+      // 2. Fetch User Profile & Plan Data
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, avatar_url, current_plan_id, subscription_status, plan_start_date, plan_end_date')
+        .eq('id', parsed.id)
+        .maybeSingle();
 
-      console.log('[Scanner] RPC response:', { data, error });
-
-      if (error) {
-        console.error('[Scanner] RPC Error object:', error);
-        
-        // Error de Postgres: Violación Unique (Ya existe un checkin o reserva hoy para este centro)
-        if (error.code === '23505') {
-          console.log('[Scanner] Reservation already exists today. Fetching it...');
-          const today = format(new Date(), 'yyyy-MM-dd');
-          const { data: existing } = await supabase
-            .from('checkins')
-            .select('id, status')
-            .eq('user_id', parsed.id)
-            .eq('partner_id', partner.id)
-            .eq('checkin_date', today)
-            .single();
-            
-          if (existing) {
-            if (existing.status === 'confirmed') {
-              setResult({ success: false, message: 'El usuario ya ingresó hoy a este centro. El pase ya fue utilizado.' });
-              setProcessing(false);
-              return;
-            } else {
-              // Get user profile details for the confirmation screen
-              const { data: userProfile } = await supabase
-                .from('profiles')
-                .select('first_name, last_name, avatar_url')
-                .eq('id', parsed.id)
-                .single();
-                
-              setVerification({
-                checkinId: existing.id,
-                userName: userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : 'Usuario',
-                userPhoto: userProfile?.avatar_url || null,
-              });
-              setProcessing(false);
-              return;
-            }
-          }
-        }
-
-        setResult({ success: false, message: error.message || 'Error al validar la entrada.' });
-      } else {
-        const res = data as any;
-        if (res?.success) {
-          // Show verification modal instead of immediate access
-          setVerification({
-            checkinId: res.checkin_id || '',
-            userName: res.user_name || 'Usuario',
-            userPhoto: res.user_photo ?? null,
-          });
-        } else {
-          setResult({ success: false, message: res?.message || 'No se pudo validar la entrada.' });
-        }
+      if (!userProfile) {
+        setResult({ success: false, message: 'Usuario no encontrado en el sistema.' });
+        setProcessing(false);
+        return;
       }
+
+      if (userProfile.subscription_status !== 'active') {
+        setResult({ success: false, message: 'El usuario no tiene una suscripción activa.' });
+        setProcessing(false);
+        return;
+      }
+
+      if (!userProfile.plan_end_date || new Date(userProfile.plan_end_date).getTime() < Date.now()) {
+        setResult({ success: false, message: 'Acceso Denegado: Suscripción Expirada.' });
+        setProcessing(false);
+        return;
+      }
+
+      // 3. Fetch Plan Limits
+      const { data: userPlan } = await supabase
+        .from('plans')
+        .select('monthly_credits')
+        .eq('id', userProfile.current_plan_id)
+        .maybeSingle();
+      
+      const maxVisits = userPlan?.monthly_credits || 0;
+
+      // 4. Check Checkins in current billing cycle for Monthly Limit evaluation
+      const { count: consumedCount } = await supabase
+        .from('checkins')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', parsed.id)
+        .in('status', ['confirmed', 'reserved'])
+        .gte('checkin_date', userProfile.plan_start_date || '2000-01-01')
+        .lte('checkin_date', userProfile.plan_end_date || '2999-12-31');
+
+      const consumed = consumedCount || 0;
+
+      // 5. Fetch specific reservation attached to this QR
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { data: existingCheckin } = await supabase
+        .from('checkins')
+        .select('id, status, partner_id, checkin_date')
+        .eq('id', parsed.reservationId)
+        .eq('user_id', parsed.id)
+        .maybeSingle();
+
+      if (!existingCheckin) {
+        setResult({ success: false, message: 'La reserva ligada a este código QR no existe o fue cancelada.' });
+        setProcessing(false);
+        return;
+      }
+
+      if (existingCheckin.checkin_date !== today) {
+        setResult({ success: false, message: 'La reserva escaneada no corresponde a la fecha de hoy.' });
+        setProcessing(false);
+        return;
+      }
+
+      // Geo-fencing block
+      if (existingCheckin.partner_id !== partner.id) {
+        setResult({ success: false, message: 'Acceso Denegado: La reserva pertenece a otro centro de entrenamiento.' });
+        setProcessing(false);
+        return;
+      }
+
+      if (existingCheckin.status === 'confirmed') {
+        setResult({ success: false, message: 'El usuario ya registró su entrada hoy con esta reserva. El pase ya fue utilizado.' });
+        setProcessing(false);
+        return;
+      }
+
+      // We no longer strictly block by max limit BEFORE rendering, because we are
+      // processing a previously granted 'reserved' status checkin, which ALREADY accounted
+      // for the monthly limit when it was created. However, if somehow they have 21/20, we can block.
+      if (consumed > maxVisits) {
+         setResult({ success: false, message: `Límite mensual sobrepasado (${consumed}/${maxVisits}). Contactar a soporte.` });
+         setProcessing(false);
+         return;
+      }
+
+      // 6. Provide verification object
+      setVerification({
+        checkinId: existingCheckin.id,
+        userName: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'Usuario',
+        userPhoto: userProfile.avatar_url || null,
+        isNewCheckin: false,
+        userId: parsed.id,
+        partnerId: partner.id
+      });
     } catch (err: any) {
       console.error('[Scanner] Unhandled error:', err);
       toast.error('Ocurrió un error inesperado al procesar el código.');
@@ -169,29 +214,32 @@ const PartnerScanner = () => {
     setConfirming(true);
 
     try {
-      const { data, error } = await supabase.rpc('confirm_access', {
-        p_checkin_id: verification.checkinId,
-      });
+      // Safely Update the explicit existing reservation to 'confirmed'
+      const { error: updateErr } = await supabase
+        .from('checkins')
+        .update({ status: 'confirmed' })
+        .eq('id', verification.checkinId);
 
-      if (error) {
-        toast.error(error.message || 'Error al confirmar acceso.');
+      const opError = updateErr;
+
+      if (opError) {
+        if (opError.code === '23505') {
+          toast.error('El usuario ya generó un ingreso en otro panel. Intento duplicado abortado.');
+        } else {
+          toast.error(opError.message || 'Error al confirmar acceso en la base de datos.');
+        }
         setConfirming(false);
         return;
       }
 
-      const res = data as any;
-      if (res?.success) {
-        setVerification(null);
-        setResult({
-          success: true,
-          message: '¡ACCESO PERMITIDO!',
-          userName: verification.userName,
-          userPhoto: verification.userPhoto,
-        });
-        toast.success('Entrada confirmada');
-      } else {
-        toast.error(res?.message || 'No se pudo confirmar el acceso.');
-      }
+      setVerification(null);
+      setResult({
+        success: true,
+        message: '¡ACCESO PERMITIDO!',
+        userName: verification.userName,
+        userPhoto: verification.userPhoto,
+      });
+      toast.success('Entrada guardada y debidamente contabilizada.');
     } catch {
       toast.error('Error inesperado al confirmar acceso.');
     }

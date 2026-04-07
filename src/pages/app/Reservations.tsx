@@ -73,8 +73,12 @@ const Reservations = () => {
     setCancellingId(null);
   };
 
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const formatDate = (d: string) => {
+    const [year, month, day] = d.split('-');
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString('es-CO', { 
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+    });
+  };
 
   const ReservationCard = ({ r, showCancel }: { r: ReservationRow; showCancel?: boolean }) => {
     const cfg = statusConfig[r.status] || statusConfig.reserved;
