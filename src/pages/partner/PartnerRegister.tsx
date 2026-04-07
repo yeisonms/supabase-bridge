@@ -240,7 +240,7 @@ const PartnerRegister = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Precio Mensual Aproximado (MXN)</Label>
+            <Label htmlFor="price">Precio Mensual (COP)</Label>
             <Input
               id="price"
               type="number"

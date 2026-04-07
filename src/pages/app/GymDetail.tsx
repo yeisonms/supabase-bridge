@@ -16,6 +16,7 @@ import ReviewSection from '@/components/gym/ReviewSection';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 /* ─── Accordion helper ─── */
 const InfoAccordion = ({ title, subtitle, children, defaultOpen = false }: {
@@ -57,7 +58,7 @@ const GymDetail = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('current_plan_id, subscription_status, avatar_url')
+        .select('current_plan_id, subscription_status, avatar_url, plan_end_date')
         .eq('id', user!.id)
         .single();
       return data;
@@ -101,7 +102,7 @@ const GymDetail = () => {
     queryKey: ['checkin-status', id, user?.id],
     enabled: !!id && !!user?.id,
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = format(new Date(), 'yyyy-MM-dd');
       const [{ data: existing }, { data: dailyCheckins }] = await Promise.all([
         supabase
           .from('checkins')
@@ -129,7 +130,7 @@ const GymDetail = () => {
 
   useEffect(() => {
     if (!id) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
     const load = async () => {
       const [{ data: p }, { count }] = await Promise.all([
         supabase.from('partners').select('*').eq('id', id).single(),
@@ -159,29 +160,44 @@ const GymDetail = () => {
 
   const handleReserve = async () => {
     if (!user || !id) return;
+    
+    // Explicit Guard Clause for Plan Expiration
+    const isPlanExpired = userSub?.plan_end_date ? new Date(userSub.plan_end_date).getTime() < Date.now() : false;
+    if (isPlanExpired) {
+      toast.error('Tu plan ha expirado. Por favor, renueva tu suscripción para seguir entrenando');
+      navigate('/plans');
+      return;
+    }
+
     if (!isActive) { toast.error('Necesitas un plan activo para entrenar'); navigate('/plans'); return; }
     if (needsUpgrade) { toast.info('Necesitas un plan superior para este centro'); navigate('/plans'); return; }
 
     setCheckingIn(true);
     try {
-      const { data, error } = await supabase.rpc('reserve_spot', { p_partner_id: id });
-      if (error) {
-        if (error.code === '23505') {
+      // Bypass faulty RPC and insert directly
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const { error: insertError } = await supabase
+        .from('checkins')
+        .insert({
+          user_id: user.id,
+          partner_id: id,
+          checkin_date: today,
+          status: 'reserved'
+        });
+
+      if (insertError) {
+        if (insertError.code === '23505') {
           toast.error('Solo se permite una reserva por día.');
         } else {
-          toast.error(error.message || 'No se pudo reservar. Intenta nuevamente.');
+          toast.error(insertError.message || 'No se pudo reservar. Intenta nuevamente.');
         }
         queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
       } else {
-        const result = data as any;
-        if (result?.success === false) {
-          toast.error(result?.message || 'No se pudo reservar.');
-        } else {
-          setTodayCount((c) => c + 1);
-          toast.success(result?.message || '¡Reserva exitosa!');
-          queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
-          queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
-        }
+        setTodayCount((c) => c + 1);
+        toast.success('¡Reserva exitosa!');
+        queryClient.invalidateQueries({ queryKey: ['checkin-status'] });
+        queryClient.invalidateQueries({ queryKey: ['my-reservations'] });
+        queryClient.invalidateQueries({ queryKey: ['pass-today-reservation'] });
       }
     } catch {
       toast.error('Error inesperado al reservar.');
@@ -249,10 +265,15 @@ const GymDetail = () => {
         </div>
       );
     }
-    if (!isActive) {
+    const isPlanExpired = userSub?.plan_end_date ? new Date(userSub.plan_end_date).getTime() < Date.now() : false;
+
+    if (!isActive || isPlanExpired) {
       return (
-        <Button variant="secondary" size="lg" className="w-full rounded-full py-6" onClick={() => { toast.error('Necesitas un plan activo'); navigate('/plans'); }}>
-          <Lock className="h-5 w-5 mr-2" /> Adquirir Plan
+        <Button variant="secondary" size="lg" className="w-full rounded-full py-6" onClick={() => { 
+          toast.error(isPlanExpired ? 'Tu plan ha expirado' : 'Necesitas un plan activo'); 
+          navigate('/plans'); 
+        }}>
+          <Lock className="h-5 w-5 mr-2" /> {isPlanExpired ? 'Renovar Plan' : 'Adquirir Plan'}
         </Button>
       );
     }

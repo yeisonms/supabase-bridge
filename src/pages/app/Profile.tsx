@@ -42,6 +42,7 @@ const Profile = () => {
   });
 
   const isActive = profileSub?.subscription_status === 'active';
+  const isExpired = profileSub?.plan_end_date ? new Date(profileSub.plan_end_date).getTime() < Date.now() : false;
   const phone = user?.user_metadata?.phone || null;
 
   const handleSignOut = async () => {
@@ -108,9 +109,15 @@ const Profile = () => {
               <span className="text-xl font-bold text-foreground">
                 {plan.name}
               </span>
-              <Badge className="bg-green-500/15 text-green-600 border-green-500/30 hover:bg-green-500/20">
-                Activo
-              </Badge>
+              {isExpired ? (
+                <Badge className="bg-red-500 text-white border-red-600 hover:bg-red-600">
+                  Expirado
+                </Badge>
+              ) : (
+                <Badge className="bg-green-500/15 text-green-600 border-green-500/30 hover:bg-green-500/20">
+                  Activo
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
               Válido hasta:{' '}
