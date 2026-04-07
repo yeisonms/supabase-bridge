@@ -45,13 +45,16 @@ const Pass = () => {
         {/* Animated pulse ring */}
         <div className="absolute -inset-1 rounded-3xl border-2 border-primary/40 animate-pulse pointer-events-none" />
 
-        <div className="bg-background rounded-2xl p-4 flex items-center justify-center">
-          <QRCode
-            value={qrData || '{}'}
-            size={200}
-            bgColor="hsl(0 0% 100%)"
-            fgColor="hsl(0 0% 8%)"
-          />
+        <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center border-4 border-white">
+          <div className="bg-white p-2">
+            <QRCode
+              value={qrData || '{}'}
+              size={220}
+              bgColor="#FFFFFF"
+              fgColor="#000000"
+              level="H"
+            />
+          </div>
         </div>
 
         {/* Refresh progress bar */}

@@ -41,18 +41,22 @@ const PartnerScanner = () => {
     setProcessing(true);
     setResult(null);
     setVerification(null);
+    console.log('[Scanner] Raw text:', raw);
 
     try {
       let parsed: { id?: string; timestamp?: number };
       try {
         parsed = JSON.parse(raw);
-      } catch {
+        console.log('[Scanner] Parsed JSON:', parsed);
+      } catch (err) {
+        console.error('[Scanner] JSON parse error:', err);
         setResult({ success: false, message: 'Código QR inválido. No es un JSON válido.' });
         setProcessing(false);
         return;
       }
 
       if (!parsed.id || typeof parsed.id !== 'string') {
+        console.error('[Scanner] Missing ID');
         setResult({ success: false, message: 'Código QR inválido. Falta el ID del usuario.' });
         setProcessing(false);
         return;
@@ -70,25 +74,73 @@ const PartnerScanner = () => {
         return;
       }
 
-      const { data: partner } = await supabase
+      console.log('[Scanner] Fetching partner for admin:', user?.id);
+      const { data: partner, error: partnerError } = await supabase
         .from('partners')
         .select('id')
         .eq('admin_user_id', user?.id || '')
-        .single();
+        .limit(1)
+        .maybeSingle();
+
+      if (partnerError) {
+        console.error('[Scanner] Partner query error:', partnerError);
+      }
 
       if (!partner) {
+        console.error('[Scanner] No partner found! admin_user_id=', user?.id);
         setResult({ success: false, message: 'No tienes un gimnasio asignado.' });
         setProcessing(false);
         return;
       }
 
+      console.log('[Scanner] Calling RPC with:', { p_user_id: parsed.id, p_partner_id: partner.id });
       // Call validate_entry_qr — now returns data WITHOUT confirming entry
       const { data, error } = await supabase.rpc('validate_entry_qr', {
         p_user_id: parsed.id,
         p_partner_id: partner.id,
       });
 
+      console.log('[Scanner] RPC response:', { data, error });
+
       if (error) {
+        console.error('[Scanner] RPC Error object:', error);
+        
+        // Error de Postgres: Violación Unique (Ya existe un checkin o reserva hoy para este centro)
+        if (error.code === '23505') {
+          console.log('[Scanner] Reservation already exists today. Fetching it...');
+          const today = new Date().toISOString().split('T')[0];
+          const { data: existing } = await supabase
+            .from('checkins')
+            .select('id, status')
+            .eq('user_id', parsed.id)
+            .eq('partner_id', partner.id)
+            .eq('checkin_date', today)
+            .single();
+            
+          if (existing) {
+            if (existing.status === 'confirmed') {
+              setResult({ success: false, message: 'El usuario ya ingresó hoy a este centro. El pase ya fue utilizado.' });
+              setProcessing(false);
+              return;
+            } else {
+              // Get user profile details for the confirmation screen
+              const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, avatar_url')
+                .eq('id', parsed.id)
+                .single();
+                
+              setVerification({
+                checkinId: existing.id,
+                userName: userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : 'Usuario',
+                userPhoto: userProfile?.avatar_url || null,
+              });
+              setProcessing(false);
+              return;
+            }
+          }
+        }
+
         setResult({ success: false, message: error.message || 'Error al validar la entrada.' });
       } else {
         const res = data as any;
@@ -103,8 +155,10 @@ const PartnerScanner = () => {
           setResult({ success: false, message: res?.message || 'No se pudo validar la entrada.' });
         }
       }
-    } catch {
-      setResult({ success: false, message: 'Error inesperado al procesar el código.' });
+    } catch (err: any) {
+      console.error('[Scanner] Unhandled error:', err);
+      toast.error('Ocurrió un error inesperado al procesar el código.');
+      setResult({ success: false, message: 'Error inesperado al procesar el código. Revisa la consola.' });
     }
     setProcessing(false);
   }, [processing, user?.id]);
@@ -330,7 +384,6 @@ const PartnerScanner = () => {
                 processQR(results[0].rawValue);
               }
             }}
-            formats={['qr_code']}
             components={{ finder: true }}
             styles={{
               container: { borderRadius: '1rem' },
