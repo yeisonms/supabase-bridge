@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +25,12 @@ const ProfileAvatarUpload = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(avatarUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (avatarUrl !== undefined) {
+      setPreviewUrl(avatarUrl);
+    }
+  }, [avatarUrl]);
 
   const initials =
     ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || '?';
@@ -111,12 +117,15 @@ const ProfileAvatarUpload = ({
       const publicUrl = urlData.publicUrl;
 
       // Update profile
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
-        .eq('id', userId);
+        .eq('id', userId)
+        .select('avatar_url')
+        .single();
 
       if (updateError) throw updateError;
+      if (!updateData) throw new Error('Error de base de datos: no se guardó la foto (Revisa Políticas RLS en la tabla perfiles).');
 
       setPreviewUrl(publicUrl);
       onAvatarUpdated(publicUrl);

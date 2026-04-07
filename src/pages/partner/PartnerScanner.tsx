@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home, Alert
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { format } from 'date-fns';
 
 const QR_MAX_AGE_MS = 60000; // 1 minute
 
@@ -108,7 +109,7 @@ const PartnerScanner = () => {
         // Error de Postgres: Violación Unique (Ya existe un checkin o reserva hoy para este centro)
         if (error.code === '23505') {
           console.log('[Scanner] Reservation already exists today. Fetching it...');
-          const today = new Date().toISOString().split('T')[0];
+          const today = format(new Date(), 'yyyy-MM-dd');
           const { data: existing } = await supabase
             .from('checkins')
             .select('id, status')

@@ -16,6 +16,7 @@ import ReviewSection from '@/components/gym/ReviewSection';
 import type { Partner } from '@/types/database';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 /* ─── Accordion helper ─── */
 const InfoAccordion = ({ title, subtitle, children, defaultOpen = false }: {
@@ -101,7 +102,7 @@ const GymDetail = () => {
     queryKey: ['checkin-status', id, user?.id],
     enabled: !!id && !!user?.id,
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = format(new Date(), 'yyyy-MM-dd');
       const [{ data: existing }, { data: dailyCheckins }] = await Promise.all([
         supabase
           .from('checkins')
@@ -129,7 +130,7 @@ const GymDetail = () => {
 
   useEffect(() => {
     if (!id) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = format(new Date(), 'yyyy-MM-dd');
     const load = async () => {
       const [{ data: p }, { count }] = await Promise.all([
         supabase.from('partners').select('*').eq('id', id).single(),

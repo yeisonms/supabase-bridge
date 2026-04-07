@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import { useAuth } from '@/contexts/AuthContext';
 import { Progress } from '@/components/ui/progress';
+import { format } from 'date-fns';
 
 const QR_REFRESH_SECONDS = 30;
 
 const Pass = () => {
   const { user } = useAuth();
-  const today = new Date().toISOString().split('T')[0];
+  const today = format(new Date(), 'yyyy-MM-dd');
 
   const [qrData, setQrData] = useState('');
   const [elapsed, setElapsed] = useState(0);
