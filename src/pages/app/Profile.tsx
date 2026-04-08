@@ -7,6 +7,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProfileAvatarUpload from '@/components/profile/ProfileAvatarUpload';
+
+const PLAN_LIMITS: Record<number, number> = {
+  1: 15,
+  2: 20,
+  3: 20,
+  4: 25,
+};
+
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +52,35 @@ const Profile = () => {
   const isActive = profileSub?.subscription_status === 'active';
   const isExpired = profileSub?.plan_end_date ? new Date(profileSub.plan_end_date).getTime() < Date.now() : false;
   const phone = user?.user_metadata?.phone || null;
+
+  // Count checkins within current billing cycle
+  const { data: checkinCount, isLoading: countLoading } = useQuery({
+    queryKey: ['profile-checkins-count', user?.id, profileSub?.plan_start_date],
+    enabled: !!user?.id && !!profileSub?.plan_start_date && !!profileSub?.plan_end_date,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('checkins')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .in('status', ['confirmed', 'reserved'])
+        .gte('checkin_date', profileSub!.plan_start_date)
+        .lte('checkin_date', profileSub!.plan_end_date);
+      
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  const maxVisits = profileSub?.current_plan_id ? (PLAN_LIMITS[profileSub.current_plan_id] || 0) : 0;
+  const consumedVisits = checkinCount || 0;
+  const availableVisits = Math.max(0, maxVisits - consumedVisits);
+
+  const formatDate = (d: string) => {
+    const [year, month, day] = d.split('-');
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString('es-CO', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -122,13 +159,28 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">
               Válido hasta:{' '}
               <span className="font-medium text-foreground">
-                {new Date(profileSub.plan_end_date).toLocaleDateString('es-CO', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {profileSub.plan_end_date ? formatDate(profileSub.plan_end_date) : '—'}
               </span>
             </p>
+            
+            {/* Access Quota Counter */}
+            <div className="mt-4 pt-4 border-t border-dashed flex justify-between items-center">
+              <span className="text-sm font-medium text-muted-foreground">Accesos disponibles:</span>
+              <div className="text-right">
+                {countLoading ? (
+                  <Skeleton className="h-6 w-16" />
+                ) : (
+                  <div className="flex flex-col items-end">
+                    <span className={`text-xl font-black ${availableVisits === 0 ? 'text-red-500' : 'text-primary'}`}>
+                      {availableVisits} <span className="text-sm text-muted-foreground font-medium">/ {maxVisits}</span>
+                    </span>
+                    {availableVisits === 0 && (
+                      <span className="text-[10px] text-red-500 font-bold uppercase mt-0.5">Límite alcanzado</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="text-center py-4 space-y-4">
