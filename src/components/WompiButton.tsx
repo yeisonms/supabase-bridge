@@ -17,8 +17,15 @@ export const WompiButton = ({ amountInCents, reference, label }: WompiButtonProp
     setIsLoading(true);
 
     try {
-      const publicKey = 'pub_test_Xd3ANi4mJvi1nS6W1VO0SLulFQbMysX2';
+      const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
       const currency = 'COP';
+
+      if (!publicKey) {
+        console.error('Falta VITE_WOMPI_PUBLIC_KEY en las variables de entorno');
+        toast.error('Error de configuración de pagos.');
+        setIsLoading(false);
+        return;
+      }
 
       // 1. Obtener firma del backend
       const res = await fetch('/api/wompi-signature', {
