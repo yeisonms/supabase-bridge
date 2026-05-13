@@ -45,6 +45,19 @@ const Profile = () => {
   const isExpired = profileSub?.plan_end_date ? new Date(profileSub.plan_end_date).getTime() < Date.now() : false;
   const phone = user?.user_metadata?.phone || null;
 
+  // Fallback chain: profiles table → user_metadata → email prefix
+  const displayFirstName =
+    profile?.first_name ||
+    user?.user_metadata?.first_name ||
+    user?.user_metadata?.full_name?.split(' ')[0] ||
+    '';
+  const displayLastName =
+    profile?.last_name ||
+    user?.user_metadata?.last_name ||
+    user?.user_metadata?.full_name?.split(' ').slice(1).join(' ') ||
+    '';
+  const displayName = `${displayFirstName} ${displayLastName}`.trim() || user?.email?.split('@')[0] || 'Usuario';
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/', { replace: true });
@@ -68,7 +81,7 @@ const Profile = () => {
           />
           <div className="text-center">
             <p className="font-bold text-lg">
-              {profile?.first_name || ''} {profile?.last_name || ''}
+              {displayName}
             </p>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
@@ -76,9 +89,7 @@ const Profile = () => {
         <div className="space-y-3 text-sm">
           <div className="flex items-center gap-3 text-muted-foreground">
             <UserIcon className="h-4 w-4 shrink-0" />
-            <span>
-              {profile?.first_name || '—'} {profile?.last_name || ''}
-            </span>
+            <span>{displayName}</span>
           </div>
           <div className="flex items-center gap-3 text-muted-foreground">
             <Mail className="h-4 w-4 shrink-0" />

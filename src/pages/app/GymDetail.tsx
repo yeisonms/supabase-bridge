@@ -18,6 +18,13 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
+const PLAN_LIMITS: Record<number, number> = {
+  1: 15,
+  2: 20,
+  3: 20,
+  4: 25,
+};
+
 /* ─── Accordion helper ─── */
 const InfoAccordion = ({ title, subtitle, children, defaultOpen = false }: {
   title: string; subtitle?: string; children: React.ReactNode; defaultOpen?: boolean;
@@ -58,10 +65,26 @@ const GymDetail = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('current_plan_id, subscription_status, avatar_url, plan_end_date')
+        .select('current_plan_id, subscription_status, avatar_url, plan_end_date, plan_start_date')
         .eq('id', user!.id)
         .single();
       return data;
+    },
+  });
+
+  // Monthly quota check
+  const { data: monthlyCheckinCount } = useQuery({
+    queryKey: ['gym-monthly-quota', user?.id, userSub?.plan_start_date],
+    enabled: !!user?.id && !!userSub?.plan_start_date && !!userSub?.plan_end_date,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('checkins')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .in('status', ['confirmed', 'reserved'])
+        .gte('checkin_date', userSub!.plan_start_date)
+        .lte('checkin_date', userSub!.plan_end_date);
+      return count || 0;
     },
   });
 
@@ -81,6 +104,10 @@ const GymDetail = () => {
   const isActive = userSub?.subscription_status === 'active';
   const userAccessLevel = isActive ? (userPlan?.access_level ?? 0) : 0;
   const hasAvatar = !!(userSub?.avatar_url && userSub.avatar_url.trim() !== '');
+
+  const planLimit = userSub?.current_plan_id ? (PLAN_LIMITS[userSub.current_plan_id] || 0) : 0;
+  const consumed = monthlyCheckinCount || 0;
+  const isQuotaExhausted = isActive && planLimit > 0 && consumed >= planLimit;
 
   // Fetch required plan name for this gym
   const { data: requiredPlan } = useQuery({
@@ -171,6 +198,12 @@ const GymDetail = () => {
 
     if (!isActive) { toast.error('Necesitas un plan activo para entrenar'); navigate('/plans'); return; }
     if (needsUpgrade) { toast.info('Necesitas un plan superior para este centro'); navigate('/plans'); return; }
+
+    // 🔒 CANDADO LÓGICO: Monthly quota guard — no DB call if limit reached
+    if (isQuotaExhausted) {
+      toast.error('No puedes realizar la reserva. Has alcanzado el límite mensual de tu plan.');
+      return;
+    }
 
     setCheckingIn(true);
     try {
@@ -317,6 +350,23 @@ const GymDetail = () => {
               Subir foto ahora
             </Link>
           </p>
+        </div>
+      );
+    }
+    // 🔒 CANDADO UI: Block button if monthly quota is exhausted
+    if (isQuotaExhausted) {
+      return (
+        <div className="space-y-3">
+          <Button disabled variant="secondary" className="w-full rounded-full py-6" size="lg">
+            <XCircle className="h-5 w-5 mr-2" /> Límite Mensual Alcanzado
+          </Button>
+          <div className="rounded-lg border border-red-500/30 bg-red-50 dark:bg-red-950/20 p-3">
+            <p className="text-sm text-red-700 dark:text-red-300 font-medium text-center">
+              Has consumido los {planLimit} accesos de tu plan este mes.
+              <br />
+              <span className="text-xs font-normal">Se renueva automáticamente con tu próximo ciclo de facturación.</span>
+            </p>
+          </div>
         </div>
       );
     }
