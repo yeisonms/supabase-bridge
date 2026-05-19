@@ -48,6 +48,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (_event, session) => {
         console.log('[Auth] onAuthStateChange:', _event, !!session);
         if (!mounted) return;
+
+        if (_event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          window.location.href = '/login';
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -82,15 +92,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('[Auth] error during signOut:', error);
+    } finally {
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      window.location.href = '/login';
+    }
   };
 
   return (
