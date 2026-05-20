@@ -49,8 +49,9 @@ const Profile = () => {
     },
   });
 
-  const isActive = profileSub?.subscription_status === 'active';
-  const isExpired = profileSub?.plan_end_date ? new Date(profileSub.plan_end_date).getTime() < Date.now() : false;
+  const isExpiredStatus = profileSub?.subscription_status === 'inactive' || profileSub?.subscription_status === 'expired';
+  const isTimeExpired = profileSub?.plan_end_date ? new Date(profileSub.plan_end_date).getTime() < Date.now() : false;
+  const isExpired = isTimeExpired || isExpiredStatus;
   const phone = user?.user_metadata?.phone || null;
 
 
@@ -74,7 +75,7 @@ const Profile = () => {
 
   const maxVisits = profileSub?.current_plan_id ? (PLAN_LIMITS[profileSub.current_plan_id] || 0) : 0;
   const consumedVisits = checkinCount || 0;
-  const availableVisits = Math.max(0, maxVisits - consumedVisits);
+  const availableVisits = isExpired ? 0 : Math.max(0, maxVisits - consumedVisits);
 
   const formatDate = (d: string) => {
     const [year, month, day] = d.split('-');
@@ -153,7 +154,7 @@ const Profile = () => {
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-36" />
           </div>
-        ) : isActive && plan ? (
+        ) : profileSub?.current_plan_id && plan ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span className="text-xl font-bold text-foreground">
@@ -188,19 +189,31 @@ const Profile = () => {
                       {availableVisits} <span className="text-sm text-muted-foreground font-medium">/ {maxVisits}</span>
                     </span>
                     {availableVisits === 0 && (
-                      <span className="text-[10px] text-red-500 font-bold uppercase mt-0.5">Límite alcanzado</span>
+                      <span className="text-[10px] text-red-500 font-bold uppercase mt-0.5">
+                        {isExpired ? 'Plan expirado' : 'Límite alcanzado'}
+                      </span>
                     )}
                   </div>
                 )}
               </div>
             </div>
+            
+            {isExpired && (
+              <div className="mt-4 pt-4 border-t border-dashed">
+                <Link to="/plans" className="block w-full">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold" size="lg">
+                    Renovar Plan
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-4 space-y-4">
             <p className="text-muted-foreground">No tienes una suscripción activa.</p>
-            <Link to="/plans">
-              <Button className="w-full" size="lg">
-                Ver Planes
+            <Link to="/plans" className="block w-full">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold" size="lg">
+                Elegir Plan
               </Button>
             </Link>
           </div>
