@@ -51,10 +51,10 @@ const Welcome = () => {
         } else if (attempts < maxAttempts) {
           setTimeout(poll, 1000);
         } else {
-          // Timeout: proceed anyway, webhook may still be processing
+          // Timeout: el webhook puede seguir procesando pero aún no está listo
           setVerifying(false);
-          setVerified(true);
-          startCountdown();
+          setVerified(false);
+          // No auto-redirigir, permitir que el usuario lea
         }
       };
 
@@ -108,14 +108,16 @@ const Welcome = () => {
             <p className="text-muted-foreground text-lg">
               {verified
                 ? '¡Pago confirmado! Tu plan está activo. Empieza a entrenar hoy mismo.'
-                : 'Tu plan está activo. Explora nuestra red de centros y comienza a entrenar hoy mismo.'}
+                : 'Estamos esperando la confirmación de tu banco. Esto puede tardar unos minutos. Te avisaremos cuando tu plan esté listo.'}
             </p>
             <Button size="lg" className="text-base font-bold" onClick={() => navigate('/app')}>
               Ir a mi Dashboard <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
-            <p className="text-xs text-muted-foreground">
-              Redirigiendo en {countdown}s…
-            </p>
+            {verified && (
+              <p className="text-xs text-muted-foreground">
+                Redirigiendo en {countdown}s…
+              </p>
+            )}
           </>
         )}
       </div>

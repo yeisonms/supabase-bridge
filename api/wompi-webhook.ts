@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
       // Formato esperado: USERID_PLANID_TIMESTAMP
       const referenceParts = data.reference.split("_");
       const user_id = referenceParts[0];
-      const plan_id = referenceParts[1]; // <-- ¡Aquí capturamos el ID del plan!
+      const plan_id = parseInt(referenceParts[1], 10); // Casteado a entero estricto
 
       const startDate = new Date();
       const endDate = new Date();
