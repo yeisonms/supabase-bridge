@@ -162,13 +162,15 @@ const Explore = () => {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-black">Explorar</h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowTestPanel(!showTestPanel)}
-            className={`p-2 rounded-md transition-colors ${showTestPanel ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
-            title="Panel de prueba"
-          >
-            <FlaskConical className="h-4 w-4" />
-          </button>
+          {import.meta.env.DEV && (
+            <button
+              onClick={() => setShowTestPanel(!showTestPanel)}
+              className={`p-2 rounded-md transition-colors ${showTestPanel ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
+              title="Panel de prueba"
+            >
+              <FlaskConical className="h-4 w-4" />
+            </button>
+          )}
           <div className="flex bg-secondary rounded-lg p-1">
             <button
               onClick={() => setView('list')}
@@ -186,7 +188,7 @@ const Explore = () => {
         </div>
       </div>
 
-      {showTestPanel && (
+      {import.meta.env.DEV && showTestPanel && (
         <div className="bg-secondary/50 border border-border rounded-lg p-3 mb-3 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
             <FlaskConical className="h-3 w-3" /> Modo de prueba — Cambiar ubicación
