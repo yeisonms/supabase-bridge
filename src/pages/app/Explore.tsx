@@ -43,6 +43,8 @@ const Explore = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const isDevMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.');
+
   // Fetch user subscription info
   const { data: userSub } = useQuery({
     queryKey: ['user-sub-explore', user?.id],
@@ -162,7 +164,7 @@ const Explore = () => {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-black">Explorar</h1>
         <div className="flex items-center gap-2">
-          {import.meta.env.DEV && (
+          {isDevMode && (
             <button
               onClick={() => setShowTestPanel(!showTestPanel)}
               className={`p-2 rounded-md transition-colors ${showTestPanel ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}
@@ -188,7 +190,7 @@ const Explore = () => {
         </div>
       </div>
 
-      {import.meta.env.DEV && showTestPanel && (
+      {isDevMode && showTestPanel && (
         <div className="bg-secondary/50 border border-border rounded-lg p-3 mb-3 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
             <FlaskConical className="h-3 w-3" /> Modo de prueba — Cambiar ubicación
