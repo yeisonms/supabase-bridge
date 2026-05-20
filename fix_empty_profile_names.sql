@@ -27,7 +27,7 @@ WHERE au.id = p.id
     OR TRIM(p.last_name) = ''
   );
 
--- Verifica cuántos registros quedaron aún sin nombre (deberían ser 0 o usuarios sin metadata):
+-- Verifica cuántos registros quedaron aún sin nombre (deberían ser 0 o usuarios sin metadata2):
 SELECT COUNT(*) AS pendientes
 FROM public.profiles
 WHERE first_name IS NULL OR TRIM(first_name) = '';
