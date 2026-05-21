@@ -21,44 +21,44 @@ const Welcome = () => {
       return;
     }
 
-    // Coming from Wompi: verify payment by refetching profile
+    // Coming from Wompi: verify payment via backend API
     const verifyPayment = async () => {
       setVerifying(true);
+      const transactionId = searchParams.get('id');
+      const envParam = searchParams.get('env');
 
-      // Poll for up to 10s waiting for webhook to update the profile
-      let attempts = 0;
-      const maxAttempts = 10;
+      if (!transactionId) {
+        setVerifying(false);
+        setVerified(false);
+        return;
+      }
 
-      const poll = async () => {
-        attempts++;
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setVerifying(false);
-          startCountdown();
-          return;
-        }
+      try {
+        // Validación síncrona directa con Wompi vía nuestro backend
+        const res = await fetch('/api/verify-wompi-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactionId, env: envParam }),
+        });
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_status')
-          .eq('id', user.id)
-          .maybeSingle();
+        if (!res.ok) throw new Error('Error al contactar el servidor de validación');
 
-        if (profile?.subscription_status === 'active') {
+        const data = await res.json();
+
+        if (data.status === 'APPROVED') {
           setVerifying(false);
           setVerified(true);
           startCountdown();
-        } else if (attempts < maxAttempts) {
-          setTimeout(poll, 1000);
         } else {
-          // Timeout: el webhook puede seguir procesando pero aún no está listo
+          // El pago no fue aprobado (puede estar pendiente o rechazado)
           setVerifying(false);
           setVerified(false);
-          // No auto-redirigir, permitir que el usuario lea
         }
-      };
-
-      poll();
+      } catch (error) {
+        console.error('Error en verificación síncrona:', error);
+        setVerifying(false);
+        setVerified(false);
+      }
     };
 
     verifyPayment();

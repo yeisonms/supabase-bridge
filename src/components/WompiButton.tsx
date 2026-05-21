@@ -11,18 +11,18 @@ interface WompiButtonProps {
 
 export const WompiButton = ({ amountInCents, reference, label }: WompiButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
 
   const handlePayment = async () => {
     if (isLoading) return;
     setIsLoading(true);
 
     try {
-      const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY;
       const currency = 'COP';
 
       if (!publicKey) {
-        console.error('Falta VITE_WOMPI_PUBLIC_KEY en las variables de entorno');
-        toast.error('Error de configuración de pagos.');
+        console.error('Falta la llave pública de Wompi (VITE_WOMPI_PUBLIC_KEY)');
+        toast.error('Pago no disponible: Error de configuración.');
         setIsLoading(false);
         return;
       }
@@ -57,6 +57,14 @@ export const WompiButton = ({ amountInCents, reference, label }: WompiButtonProp
     }
   };
 
+  if (!publicKey) {
+    return (
+      <Button className="w-full text-base font-bold bg-muted text-muted-foreground" size="lg" disabled>
+        Pago no disponible (Falta Llave)
+      </Button>
+    );
+  }
+
   return (
     <Button
       className="w-full text-base font-bold"
@@ -78,3 +86,4 @@ export const WompiButton = ({ amountInCents, reference, label }: WompiButtonProp
     </Button>
   );
 };
+
