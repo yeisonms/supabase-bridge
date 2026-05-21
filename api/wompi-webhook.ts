@@ -2,7 +2,8 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 // Inicializar Supabase con la SERVICE_ROLE_KEY (Para saltarse el RLS, ya que es el servidor actuando)
-const supabase = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(process.env.VITE_SUPABASE_URL!, supabaseKey!);
 
 export default async function handler(req: any, res: any) {
   // 1. Solo aceptar peticiones POST
@@ -11,7 +12,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const payload = req.body;
+    const payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const signature = payload.signature;
     const event = payload.event;
     const data = payload.data.transaction;
