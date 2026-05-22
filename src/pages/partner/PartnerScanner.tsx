@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Camera, Keyboard, Home, AlertTriangle, User, ShieldCheck, ShieldX } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Scanner } from '@yudiel/react-qr-scanner';
+import { Scanner, useDevices } from '@yudiel/react-qr-scanner';
 import { format } from 'date-fns';
 
 const QR_MAX_AGE_MS = 60000; // 1 minute
@@ -32,6 +32,8 @@ type ScanResult = {
 const PartnerScanner = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const devices = useDevices();
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<'camera' | 'manual'>('camera');
   const [input, setInput] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -39,6 +41,7 @@ const PartnerScanner = () => {
   const [scannerKey, setScannerKey] = useState(0);
   const [verification, setVerification] = useState<VerificationData | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
 
   const processQR = useCallback(async (raw: string) => {
     if (processing) return;
@@ -249,6 +252,7 @@ const PartnerScanner = () => {
   const handleReject = () => {
     setVerification(null);
     setResult(null);
+    setScannerError(null);
     setInput('');
     setScannerKey((k) => k + 1);
     toast.info('Acceso rechazado');
@@ -257,6 +261,7 @@ const PartnerScanner = () => {
   const handleReset = () => {
     setResult(null);
     setVerification(null);
+    setScannerError(null);
     setInput('');
     setScannerKey((k) => k + 1);
   };
@@ -410,7 +415,7 @@ const PartnerScanner = () => {
           variant={mode === 'camera' ? 'default' : 'outline'}
           size="sm"
           className="rounded-full flex-1"
-          onClick={() => setMode('camera')}
+          onClick={() => { setMode('camera'); setScannerError(null); }}
         >
           <Camera className="h-4 w-4 mr-2" /> Cámara
         </Button>
@@ -418,20 +423,64 @@ const PartnerScanner = () => {
           variant={mode === 'manual' ? 'default' : 'outline'}
           size="sm"
           className="rounded-full flex-1"
-          onClick={() => setMode('manual')}
+          onClick={() => { setMode('manual'); setScannerError(null); }}
         >
           <Keyboard className="h-4 w-4 mr-2" /> Manual
         </Button>
       </div>
 
+      {scannerError && (
+        <div className="bg-destructive/15 border border-destructive/30 text-destructive rounded-xl p-4 mb-4 text-sm font-medium">
+          <p className="font-bold mb-1 flex items-center gap-1.5">
+            <AlertTriangle className="h-4 w-4" /> Error al inicializar la cámara
+          </p>
+          <p className="opacity-95">{scannerError}</p>
+          <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+            Asegúrate de conceder permisos de cámara en tu navegador. Si estás probando desde un celular u otro dispositivo en la red local, recuerda que el navegador bloquea el acceso a la cámara en conexiones HTTP no seguras. Debes ingresar a través de <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">localhost</code> o configurar <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-semibold">HTTPS</code>.
+          </p>
+        </div>
+      )}
+
+      {mode === 'camera' && devices && devices.length > 0 && (
+        <div className="mb-4 bg-muted/40 border border-muted-foreground/10 rounded-xl p-3">
+          <label className="text-xs text-muted-foreground block mb-1.5 font-semibold">
+            Seleccionar Cámara ({devices.length} detectada{devices.length > 1 ? 's' : ''}):
+          </label>
+          <select
+            value={selectedDeviceId || ''}
+            onChange={(e) => {
+              setSelectedDeviceId(e.target.value || undefined);
+              setScannerError(null);
+            }}
+            className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer"
+          >
+            <option value="">Cámara por defecto (Trasera si está disponible)</option>
+            {devices.map((device) => (
+              <option key={device.deviceId} value={device.deviceId}>
+                {device.label || `Cámara ${device.deviceId.substring(0, 5)}...`}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {mode === 'camera' ? (
-        <div className="rounded-2xl overflow-hidden border bg-black">
+        <div className="rounded-2xl overflow-hidden border bg-black shadow-inner">
           <Scanner
-            key={scannerKey}
+            key={`${scannerKey}-${selectedDeviceId}`}
+            constraints={{
+              deviceId: selectedDeviceId,
+              facingMode: selectedDeviceId ? undefined : 'environment'
+            }}
+            formats={['qr_code']}
             onScan={(results) => {
               if (results && results.length > 0 && !processing) {
                 processQR(results[0].rawValue);
               }
+            }}
+            onError={(err: any) => {
+              console.error('[Scanner] Error event:', err);
+              setScannerError(err?.message || String(err));
             }}
             components={{ finder: true }}
             styles={{
