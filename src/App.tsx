@@ -34,6 +34,7 @@ import Favorites from "./pages/app/Favorites";
 import Welcome from "./pages/app/Welcome";
 import NotFound from "./pages/NotFound";
 import Legal from "./pages/Legal";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAInstallPrompt />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
