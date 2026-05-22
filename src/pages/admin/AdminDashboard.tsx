@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { DollarSign, Users, MapPin, Building2, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
@@ -21,9 +22,9 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       const now = new Date();
-      const today = now.toISOString().split('T')[0];
+      const today = format(now, 'yyyy-MM-dd');
       const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0];
+      const thirtyDaysAgo = format(new Date(now.getTime() - 30 * 86400000), 'yyyy-MM-dd');
       const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
       const [profilesRes, plansRes, userCountRes, todayCheckinsRes, newPartnersRes, chartRes, monthCheckinsRes, partnersRes] = await Promise.all([
@@ -73,7 +74,7 @@ const AdminDashboard = () => {
       // Build chart data grouped by day (last 30 days, fill empty with 0)
       const grouped: Record<string, number> = {};
       for (let i = 29; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 86400000).toISOString().split('T')[0];
+        const d = format(new Date(now.getTime() - i * 86400000), 'yyyy-MM-dd');
         grouped[d] = 0;
       }
       chartRes.data?.forEach((c) => {

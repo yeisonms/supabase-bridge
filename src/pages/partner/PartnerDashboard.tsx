@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Users, Loader2, AlertTriangle, DollarSign, Clock, CheckCircle, CalendarClock } from 'lucide-react';
@@ -32,73 +32,125 @@ const PartnerDashboard = () => {
   const [monthConfirmedTotal, setMonthConfirmedTotal] = useState(0);
   const [todayCheckins, setTodayCheckins] = useState<(CheckinRow & { profile?: ProfileInfo })[]>([]);
 
+  const loadDashboardData = useCallback(async (partnerId: string) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+
+    const [todayAllRes, monthConfirmedRes, todayListRes] = await Promise.all([
+      supabase
+        .from('checkins')
+        .select('status')
+        .eq('partner_id', partnerId)
+        .eq('checkin_date', today)
+        .in('status', ['confirmed', 'reserved']),
+      supabase
+        .from('checkins')
+        .select('checkin_date')
+        .eq('partner_id', partnerId)
+        .gte('checkin_date', monthStart)
+        .lte('checkin_date', monthEnd)
+        .eq('status', 'confirmed'),
+      supabase
+        .from('checkins')
+        .select('id, user_id, checkin_date, created_at, status')
+        .eq('partner_id', partnerId)
+        .eq('checkin_date', today)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]);
+
+    if (todayAllRes.error) {
+      console.error('[Dashboard] Error fetching todayAllRes:', todayAllRes.error);
+    }
+    if (monthConfirmedRes.error) {
+      console.error('[Dashboard] Error fetching monthConfirmedRes:', monthConfirmedRes.error);
+    }
+    if (todayListRes.error) {
+      console.error('[Dashboard] Error fetching todayListRes:', todayListRes.error);
+    }
+
+    const todayRows = todayAllRes.data || [];
+    const confirmed = todayRows.filter((r: any) => r.status === 'confirmed').length;
+    const reserved = todayRows.filter((r: any) => r.status === 'reserved').length;
+    setTodayConfirmed(confirmed);
+    setTodayReserved(reserved);
+    setTodayTotal(confirmed + reserved);
+
+    const confirmedRows = monthConfirmedRes.data || [];
+    setMonthConfirmedTotal(confirmedRows.length);
+
+    // Profiles for today's checkins
+    const checkins = (todayListRes.data || []) as CheckinRow[];
+    if (checkins.length > 0) {
+      const userIds = [...new Set(checkins.map((c) => c.user_id))];
+      const { data: profiles, error: rpcError } = await supabase
+        .rpc('get_checkin_profiles', { p_user_ids: userIds });
+
+      if (rpcError) {
+        console.error('[Dashboard] Error calling get_checkin_profiles RPC:', rpcError);
+      }
+
+      const profileMap: Record<string, ProfileInfo> = {};
+      (profiles || []).forEach((pr: any) => {
+        profileMap[pr.id] = { first_name: pr.first_name, last_name: pr.last_name };
+      });
+      setTodayCheckins(checkins.map((c) => ({ ...c, profile: profileMap[c.user_id] })));
+    } else {
+      setTodayCheckins([]);
+    }
+  }, []);
+
   useEffect(() => {
     const load = async () => {
       if (!user) return;
-      const { data: p } = await supabase
+      const { data: p, error: partnerErr } = await supabase
         .from('partners')
         .select('*')
         .eq('admin_user_id', user.id)
         .single();
 
+      if (partnerErr) {
+        console.error('[Dashboard] Error fetching partner:', partnerErr);
+      }
+
       if (!p) { setLoading(false); return; }
       setPartner(p);
 
-      const today = new Date().toISOString().split('T')[0];
-      const monthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-      const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
-
-      const [todayAllRes, monthConfirmedRes, todayListRes] = await Promise.all([
-        supabase
-          .from('checkins')
-          .select('status')
-          .eq('partner_id', p.id)
-          .eq('checkin_date', today)
-          .in('status', ['confirmed', 'reserved']),
-        supabase
-          .from('checkins')
-          .select('checkin_date')
-          .eq('partner_id', p.id)
-          .gte('checkin_date', monthStart)
-          .lte('checkin_date', monthEnd)
-          .eq('status', 'confirmed'),
-        supabase
-          .from('checkins')
-          .select('id, user_id, checkin_date, created_at, status')
-          .eq('partner_id', p.id)
-          .eq('checkin_date', today)
-          .order('created_at', { ascending: false })
-          .limit(20),
-      ]);
-
-      const todayRows = todayAllRes.data || [];
-      const confirmed = todayRows.filter((r: any) => r.status === 'confirmed').length;
-      const reserved = todayRows.filter((r: any) => r.status === 'reserved').length;
-      setTodayConfirmed(confirmed);
-      setTodayReserved(reserved);
-      setTodayTotal(confirmed + reserved);
-
-      const confirmedRows = monthConfirmedRes.data || [];
-      setMonthConfirmedTotal(confirmedRows.length);
-
-      // Profiles for today's checkins
-      const checkins = (todayListRes.data || []) as CheckinRow[];
-      if (checkins.length > 0) {
-        const userIds = [...new Set(checkins.map((c) => c.user_id))];
-        const { data: profiles } = await supabase
-          .rpc('get_checkin_profiles', { p_user_ids: userIds });
-        const profileMap: Record<string, ProfileInfo> = {};
-        (profiles || []).forEach((pr: any) => {
-          profileMap[pr.id] = { first_name: pr.first_name, last_name: pr.last_name };
-        });
-        setTodayCheckins(checkins.map((c) => ({ ...c, profile: profileMap[c.user_id] })));
-      } else {
-        setTodayCheckins([]);
-      }
+      await loadDashboardData(p.id);
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, loadDashboardData]);
+
+  useEffect(() => {
+    if (!partner?.id) return;
+
+    console.log('[Dashboard] Subscribing to realtime checkins for partner:', partner.id);
+    const channel = supabase
+      .channel(`partner-dashboard-checkins-${partner.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'checkins',
+          filter: `partner_id=eq.${partner.id}`,
+        },
+        (payload) => {
+          console.log('[Dashboard] Realtime checkin update received, reloading...', payload);
+          loadDashboardData(partner.id);
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Dashboard] Realtime subscription status for partner ${partner.id}:`, status);
+      });
+
+    return () => {
+      console.log('[Dashboard] Unsubscribing from realtime checkins for partner:', partner.id);
+      supabase.removeChannel(channel);
+    };
+  }, [partner?.id, loadDashboardData]);
 
   if (loading) {
     return (
@@ -228,7 +280,11 @@ const PartnerDashboard = () => {
                   const time = c.created_at ? format(parseISO(c.created_at), 'HH:mm', { locale: es }) : '--:--';
                   const isConfirmed = c.status === 'confirmed';
                   const statusLabel = isConfirmed ? 'Confirmado' : c.status === 'reserved' ? 'Reservado' : c.status;
-                  const statusColor = isConfirmed ? 'text-emerald-600' : 'text-red-500';
+                  const statusColor = isConfirmed 
+                    ? 'text-emerald-600' 
+                    : c.status === 'reserved' 
+                      ? 'text-amber-500' 
+                      : 'text-red-500';
                   return (
                     <tr key={c.id} className="border-b last:border-0">
                       <td className="py-3 font-medium">{name}</td>
