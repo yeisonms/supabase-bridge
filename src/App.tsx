@@ -29,6 +29,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPlans from "./pages/admin/AdminPlans";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminGymDetail from "./pages/admin/AdminGymDetail";
+import AdminFinances from "./pages/admin/AdminFinances";
 import Checkout from "./pages/Checkout";
 import Favorites from "./pages/app/Favorites";
 import Welcome from "./pages/app/Welcome";
@@ -79,6 +80,7 @@ const App = () => (
             {/* Super Admin portal */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="finances" element={<AdminFinances />} />
               <Route path="partners" element={<AdminPartners />} />
               <Route path="gym/:id" element={<AdminGymDetail />} />
               <Route path="users" element={<AdminUsers />} />

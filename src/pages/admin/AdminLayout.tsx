@@ -1,11 +1,12 @@
 import { NavLink, Outlet, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { BarChart3, Users, Building2, CreditCard, TrendingUp, LogOut } from 'lucide-react';
+import { BarChart3, Users, Building2, CreditCard, TrendingUp, LogOut, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 
 const sidebarItems = [
   { to: '/admin', icon: BarChart3, label: 'Dashboard', end: true },
+  { to: '/admin/finances', icon: Wallet, label: 'Finanzas' },
   { to: '/admin/users', icon: Users, label: 'Usuarios' },
   { to: '/admin/partners', icon: Building2, label: 'Partners' },
   { to: '/admin/plans', icon: CreditCard, label: 'Planes' },
