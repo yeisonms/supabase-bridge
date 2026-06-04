@@ -38,6 +38,7 @@ const Explore = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedPartner, setSelectedPartner] = useState<NearbyPartner | null>(null);
   const [showTestPanel, setShowTestPanel] = useState(false);
+  const [showUserInfoWindow, setShowUserInfoWindow] = useState(false);
   const [testLat, setTestLat] = useState('');
   const [testLng, setTestLng] = useState('');
   const navigate = useNavigate();
@@ -333,6 +334,24 @@ const Explore = () => {
                 streetViewControl: false,
               }}
             >
+              {userLocation && (
+                <Marker
+                  position={userLocation}
+                  icon={{
+                    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                    scaledSize: new window.google.maps.Size(32, 32),
+                  }}
+                  onClick={() => setShowUserInfoWindow(true)}
+                  zIndex={100}
+                />
+              )}
+
+              {showUserInfoWindow && userLocation && (
+                <InfoWindow position={userLocation} onCloseClick={() => setShowUserInfoWindow(false)}>
+                  <div className="p-2 text-sm font-bold text-gray-900">Tu ubicación actual</div>
+                </InfoWindow>
+              )}
+
               {filteredPartners.map((p) => {
                 const lat = (p as any).lat ?? (p.location as any)?.coordinates?.[1];
                 const lng = (p as any).long ?? (p.location as any)?.coordinates?.[0];
@@ -356,14 +375,14 @@ const Explore = () => {
                     onCloseClick={() => setSelectedPartner(null)}
                   >
                     <div className="p-1 min-w-[160px]">
-                      <h3 className="font-bold text-sm text-foreground">{selectedPartner.name}</h3>
+                      <h3 className="font-bold text-sm text-gray-900">{selectedPartner.name}</h3>
                       {selectedPartner.distance_km != null && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-xs text-gray-600 mt-0.5">
                           {formatDistance(selectedPartner.distance_km)}
                         </p>
                       )}
                       {getPartnerAccessStatus(selectedPartner) === 'no-plan' && (
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
                           <Lock className="h-3 w-3" /> Requiere plan
                         </p>
                       )}
