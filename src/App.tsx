@@ -36,6 +36,7 @@ import Welcome from "./pages/app/Welcome";
 import NotFound from "./pages/NotFound";
 import Legal from "./pages/Legal";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <PWAInstallPrompt />
+      <WhatsAppButton />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
