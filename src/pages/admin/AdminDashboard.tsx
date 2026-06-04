@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 type KPIs = {
   monthlyRevenue: number;
-  operationalCosts: number;
+  partnerDebt: number;
+  manualExpenses: number;
   netProfit: number;
   totalUsers: number;
   todayCheckins: number;
@@ -23,7 +24,7 @@ const getSpanishMonth = (dateString: string) => {
 };
 
 const AdminDashboard = () => {
-  const [kpis, setKpis] = useState<KPIs>({ monthlyRevenue: 0, operationalCosts: 0, netProfit: 0, totalUsers: 0, todayCheckins: 0, newPartnersWeek: 0 });
+  const [kpis, setKpis] = useState<KPIs>({ monthlyRevenue: 0, partnerDebt: 0, manualExpenses: 0, netProfit: 0, totalUsers: 0, todayCheckins: 0, newPartnersWeek: 0 });
   const [chartData, setChartData] = useState<{ date: string; checkins: number }[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -82,28 +83,31 @@ const AdminDashboard = () => {
           .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
       }
 
-      // Costos Operativos: Deuda a Partners + Egresos Manuales (Mes Seleccionado)
-      let operationalCosts = 0;
+      // Costos: Deuda a Partners + Egresos Manuales (Mes Seleccionado)
+      let partnerDebt = 0;
+      let manualExpenses = 0;
+
       // 1. Deuda a Partners
       if (monthCheckinsRes.data && partnersRes.data) {
         const rateMap: Record<string, number> = {};
         partnersRes.data.forEach((p: any) => { rateMap[p.id] = p.rate_per_visit ?? 0; });
         monthCheckinsRes.data.forEach((c: any) => {
-          operationalCosts += rateMap[c.partner_id] || 0;
+          partnerDebt += rateMap[c.partner_id] || 0;
         });
       }
-      // 2. Egresos Manuales
+      // 2. Egresos Manuales (Costos Operativos)
       if (transactionsRes.data) {
-        operationalCosts += transactionsRes.data
+        manualExpenses += transactionsRes.data
           .filter(t => t.transaction_type === 'egreso')
           .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
       }
 
-      const netProfit = revenue - operationalCosts;
+      const netProfit = revenue - (partnerDebt + manualExpenses);
 
       setKpis({
         monthlyRevenue: revenue,
-        operationalCosts,
+        partnerDebt,
+        manualExpenses,
         netProfit,
         totalUsers: userCountRes.count ?? 0,
         todayCheckins: todayCheckinsRes.count ?? 0,
@@ -132,7 +136,8 @@ const AdminDashboard = () => {
 
   const financialCards = [
     { label: 'Ingresos Brutos', value: formatCOP(kpis.monthlyRevenue), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30' },
-    { label: 'Costos Operativos', value: formatCOP(kpis.operationalCosts), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
+    { label: 'Deuda a Partners', value: formatCOP(kpis.partnerDebt), icon: Building2, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-950/30' },
+    { label: 'Costos Operativos', value: formatCOP(kpis.manualExpenses), icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' },
     { label: 'Ganancia Neta (Profit)', value: formatCOP(kpis.netProfit), icon: kpis.netProfit >= 0 ? TrendingUp : TrendingDown, color: kpis.netProfit >= 0 ? 'text-emerald-600' : 'text-destructive', bg: kpis.netProfit >= 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-red-50 dark:bg-red-950/30' },
   ];
 
@@ -177,7 +182,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Financial overview cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {financialCards.map((c) => (
           <Card key={c.label} className={`${c.bg} border-none`}>
             <CardContent className="p-6">
