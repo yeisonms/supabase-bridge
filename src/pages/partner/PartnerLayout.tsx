@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Settings, Landmark, ScanLine } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import logo from '@/assets/logo.png';
+import FinancialAlertBanner from '@/components/FinancialAlertBanner';
 
 const PartnerLayout = () => {
   const { user, profile, loading } = useAuth();
@@ -57,6 +58,7 @@ const PartnerLayout = () => {
           </div>
         </div>
       </header>
+      <FinancialAlertBanner />
       <Outlet />
     </div>
   );

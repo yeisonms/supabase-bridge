@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import LocationPicker from '@/components/LocationPicker';
 import MultiCategorySelect from '@/components/MultiCategorySelect';
+import FinancialSettingsForm from '@/components/FinancialSettingsForm';
 
 type PartnerData = {
   id: string;
@@ -358,6 +359,11 @@ const PartnerSettings = () => {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Guardar Cambios
         </Button>
+      </section>
+
+      {/* Financial Settings */}
+      <section className="pt-6 border-t">
+        <FinancialSettingsForm partnerId={partner.id} />
       </section>
     </div>
   );

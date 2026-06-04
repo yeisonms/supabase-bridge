@@ -9,13 +9,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft, MapPin, Users, Loader2, Clock, Mail, Phone,
-  Dumbbell, Calendar, ImageIcon, ShieldCheck, ShieldX, DollarSign, Save,
+  Dumbbell, Calendar, ImageIcon, ShieldCheck, ShieldX, DollarSign, Save, Landmark, AlertCircle
 } from 'lucide-react';
 
 const AdminGymDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [partner, setPartner] = useState<any>(null);
+  const [financials, setFinancials] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkinCount, setCheckinCount] = useState(0);
   const [ratePerVisit, setRatePerVisit] = useState<string>('');
@@ -25,16 +26,22 @@ const AdminGymDetail = () => {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
-      const [{ data: p }, { count }] = await Promise.all([
+      const [{ data: p }, { count }, { data: f }] = await Promise.all([
         supabase.from('partners').select('*').eq('id', id).single(),
         supabase
           .from('checkins')
           .select('*', { count: 'exact', head: true })
           .eq('partner_id', id),
+        supabase
+          .from('partner_financials')
+          .select('*')
+          .eq('partner_id', id)
+          .maybeSingle(),
       ]);
       setPartner(p);
       setCheckinCount(count || 0);
       setRatePerVisit(p?.rate_per_visit != null ? String(p.rate_per_visit) : '');
+      setFinancials(f);
       setLoading(false);
     };
     load();
@@ -231,6 +238,37 @@ const AdminGymDetail = () => {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">Monto que se paga al centro aliado por cada visita validada. Solo visible para administradores.</p>
+            </CardContent>
+          </Card>
+
+          {/* Financials – admin only */}
+          <Card className="border-primary/30">
+            <CardContent className="pt-6 space-y-3">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <Landmark className="h-4 w-4" /> Datos Bancarios
+              </h3>
+              {financials ? (
+                <div className="space-y-2 text-sm mt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <span className="text-muted-foreground">Banco:</span>
+                    <span className="font-medium text-right break-words">{financials.bank_name}</span>
+                    
+                    <span className="text-muted-foreground">Tipo de Cuenta:</span>
+                    <span className="font-medium text-right break-words">{financials.account_type}</span>
+                    
+                    <span className="text-muted-foreground">Número:</span>
+                    <span className="font-medium text-right break-words">{financials.account_number}</span>
+                    
+                    <span className="text-muted-foreground">Documento:</span>
+                    <span className="font-medium text-right break-words">{financials.document_type} {financials.document_number}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-100 dark:bg-amber-900/30 p-3 rounded-md text-amber-800 dark:text-amber-300 text-sm mt-3 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <p>Este centro aliado aún no ha registrado sus datos bancarios para recibir pagos.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
