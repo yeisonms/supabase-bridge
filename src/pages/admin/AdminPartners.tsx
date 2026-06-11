@@ -3,15 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Eye } from 'lucide-react';
+import { Eye, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Partner } from '@/types/database';
 
 const AdminPartners = () => {
   const [partners, setPartners] = useState<(Partner & { checkin_count: number })[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchPartners = async () => {
     const { data } = await supabase.from('partners').select('*');
@@ -42,11 +43,27 @@ const AdminPartners = () => {
     setPartners((prev) => prev.map((p) => p.id === partner.id ? { ...p, is_active: updated.is_active } : p));
   };
 
+  const filteredPartners = partners.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Gestión de Partners</h2>
-        <Badge variant="secondary">{partners.length} total</Badge>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold">Gestión de Partners</h2>
+          <Badge variant="secondary">{partners.length} total</Badge>
+        </div>
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar por nombre o categoría..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       <div className="border rounded-lg bg-card">
@@ -64,10 +81,10 @@ const AdminPartners = () => {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>
-            ) : partners.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No hay partners registrados</TableCell></TableRow>
+            ) : filteredPartners.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No se encontraron partners</TableCell></TableRow>
             ) : (
-              partners.map((p) => (
+              filteredPartners.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell>{p.category ?? '—'}</TableCell>

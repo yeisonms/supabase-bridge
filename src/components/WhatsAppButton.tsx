@@ -1,7 +1,7 @@
 import React from 'react';
 
 const WhatsAppButton: React.FC = () => {
-  const phoneNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '573184723859';
+  const phoneNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '573223842787';
   const defaultMessage = '¡Hola! Necesito ayuda con la plataforma.';
   const encodedMessage = encodeURIComponent(defaultMessage);
   
