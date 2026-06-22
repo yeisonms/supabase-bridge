@@ -70,6 +70,7 @@ const Register = () => {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
             phone: phone.trim(),
+            role: isPartner ? 'partner_admin' : 'user',
           },
           emailRedirectTo: window.location.origin,
         },
@@ -82,7 +83,9 @@ const Register = () => {
 
       if (data.user) {
         // Upsert profile with names + terms timestamp (upsert handles race condition with DB trigger)
-        await supabase
+        // We do this best effort, as if email confirmation is required, RLS might block this upsert.
+        // The trigger will handle the initial creation with the correct role.
+        supabase
           .from('profiles')
           .upsert({
             id: data.user.id,
@@ -90,9 +93,15 @@ const Register = () => {
             last_name: lastName.trim(),
             role: isPartner ? 'partner_admin' : 'user',
             terms_accepted_at: new Date().toISOString(),
-          } as any, { onConflict: 'id' });
+          } as any, { onConflict: 'id' }).then(({error: upsertError}) => {
+             if (upsertError) console.warn("Could not upsert profile (likely due to RLS/email confirmation)", upsertError);
+          });
 
-        toast.success('¡Cuenta creada con éxito!');
+        if (!data.session) {
+          toast.success('¡Cuenta creada! Por favor revisa tu bandeja de entrada o spam para verificar tu correo antes de continuar.', { duration: 8000 });
+        } else {
+          toast.success('¡Cuenta creada con éxito!');
+        }
       }
     } catch {
       toast.error('Error inesperado al registrarse');
