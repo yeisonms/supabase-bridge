@@ -88,6 +88,7 @@ const Register = () => {
             id: data.user.id,
             first_name: firstName.trim(),
             last_name: lastName.trim(),
+            role: isPartner ? 'partner_admin' : 'user',
             terms_accepted_at: new Date().toISOString(),
           } as any, { onConflict: 'id' });
 

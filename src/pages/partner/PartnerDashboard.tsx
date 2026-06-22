@@ -162,10 +162,13 @@ const PartnerDashboard = () => {
 
   if (!partner) {
     return (
-      <div className="px-4 pt-12 text-center">
+      <div className="px-4 pt-12 text-center flex flex-col items-center justify-center">
         <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="font-semibold">No tienes un centro aliado asignado</p>
-        <p className="text-sm text-muted-foreground mt-1">Contacta al administrador de RedFit.</p>
+        <p className="font-semibold text-lg mb-2">Aún no has registrado tu centro aliado</p>
+        <p className="text-sm text-muted-foreground mb-6">Para empezar a usar el panel, debes registrar la información de tu centro.</p>
+        <Link to="/partner/register">
+          <Button size="lg" className="rounded-full">Registrar mi Centro</Button>
+        </Link>
       </div>
     );
   }
