@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
+import FooterAttribution from '@/components/FooterAttribution';
 
 const Footer = () => (
-  <footer className="border-t border-white/5 py-12 bg-background relative z-10">
-    <div className="container px-4 flex flex-col md:flex-row items-center justify-between gap-6">
+  <footer className="border-t border-white/5 pt-12 bg-background relative z-10">
+    <div className="container px-4 flex flex-col md:flex-row items-center justify-between gap-6 mb-4">
       <p className="text-sm text-muted-foreground font-medium">
         © {new Date().getFullYear()} <span className="font-bold text-foreground">RedFit</span>. Todos los derechos reservados.
       </p>
@@ -11,6 +12,7 @@ const Footer = () => (
         <Link to="/login" className="hover:text-primary transition-colors">Iniciar Sesión</Link>
       </div>
     </div>
+    <FooterAttribution />
   </footer>
 );
 
